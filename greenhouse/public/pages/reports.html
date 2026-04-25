@@ -1,0 +1,167 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Reports - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+
+      <div class="page-header">
+        <div><h2><span class="header-icon" id="icon-report"></span> Analytics &amp; Reports</h2><p>Export and analyse historical greenhouse data</p></div>
+      </div>
+
+      <!-- Filter Bar -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="d-flex align-center gap-16" style="flex-wrap:wrap;">
+          <div class="form-group" style="margin:0;flex:1;min-width:150px;">
+            <label>Sensor Type</label>
+            <select id="f-type" class="form-control">
+              <option value="">All Types</option>
+              <option value="Temperature">Temperature</option>
+              <option value="Humidity">Humidity</option>
+              <option value="Soil Moisture">Soil Moisture</option>
+            </select>
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:150px;">
+            <label>Date From</label>
+            <input id="f-from" class="form-control" type="date">
+          </div>
+          <div class="form-group" style="margin:0;flex:1;min-width:150px;">
+            <label>Date To</label>
+            <input id="f-to" class="form-control" type="date">
+          </div>
+          <div style="padding-top:20px;">
+            <button class="btn btn-green" onclick="runReport()">GENERATE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Export Buttons -->
+      <div class="d-flex gap-12 mb-16">
+        <button class="btn btn-outline" onclick="downloadCSV()"><span class="header-icon" id="icon-dl-csv"></span> Download CSV</button>
+        <button class="btn btn-outline" onclick="downloadPDF()"><span class="header-icon" id="icon-dl-pdf"></span> Download PDF</button>
+      </div>
+
+      <!-- Results Table -->
+      <div class="table-wrap">
+        <div class="table-head">
+          <h3>Report Data</h3>
+          <span class="text-muted text-sm" id="row-count">- rows</span>
+        </div>
+        <table>
+          <thead><tr><th>Timestamp</th><th>Sensor Type</th><th>Value</th><th>Unit</th></tr></thead>
+          <tbody id="report-tbody"><tr class="loading-row"><td colspan="4">Click GENERATE to load data.</td></tr></tbody>
+        </table>
+        <div class="table-footer">
+          <div class="pagination-info" id="pag-info">Showing 0-0 of 0</div>
+          <div class="pagination-btns">
+            <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+            <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+let reportData = [];
+
+let currentPage = 1;
+const pageSize = 10;
+
+async function runReport() {
+  const type = document.getElementById('f-type').value;
+  const from = document.getElementById('f-from').value;
+  const to   = document.getElementById('f-to').value;
+
+  const params = new URLSearchParams();
+  if (type) params.append('type', type);
+  if (from) params.append('from', from);
+  if (to)   params.append('to', to);
+
+  try {
+    reportData = await UI.apiFetch('/api/reports/data?' + params.toString());
+    document.getElementById('row-count').textContent = reportData.length + ' rows';
+    currentPage = 1;
+    renderTable();
+  } catch(e) { UI.toast(e.message, 'error'); }
+}
+
+function renderTable() {
+  const tb = document.getElementById('report-tbody');
+  if (!reportData.length) { tb.innerHTML='<tr class="loading-row"><td colspan="4">No data for selected filters.</td></tr>'; return; }
+  
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = reportData.slice(start, end);
+
+  tb.innerHTML = pageData.map(r=>`<tr>
+    <td>${new Date(r.timestamp).toLocaleString()}</td>
+    <td class="fw-600">${r.type}</td>
+    <td><strong>${r.value}</strong></td>
+    <td class="text-muted">${r.unit}</td>
+  </tr>`).join('');
+
+  const total = reportData.length;
+  document.getElementById('pag-info').textContent = `Showing ${total ? start + 1 : 0}-${Math.min(end, total)} of ${total}`;
+  document.getElementById('prev-btn').disabled = currentPage === 1;
+  document.getElementById('next-btn').disabled = end >= total;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+}
+
+function downloadCSV() {
+  const type = document.getElementById('f-type').value;
+  const from = document.getElementById('f-from').value;
+  const to   = document.getElementById('f-to').value;
+  const params = new URLSearchParams();
+  if (type) params.append('type', type);
+  if (from) params.append('from', from);
+  if (to)   params.append('to', to);
+  window.open('/api/reports/csv?' + params.toString(), '_blank');
+}
+
+async function downloadPDF() {
+  const type = document.getElementById('f-type').value;
+  const from = document.getElementById('f-from').value;
+  const to   = document.getElementById('f-to').value;
+  const params = new URLSearchParams();
+  if (type) params.append('type', type);
+  if (from) params.append('from', from);
+  if (to)   params.append('to', to);
+
+  try {
+    const res = await fetch('/api/reports/pdf?' + params.toString(), {
+      headers: { Authorization: 'Bearer ' + UI.getToken() }
+    });
+    if (!res.ok) throw new Error('PDF generation failed');
+    const blob = await res.blob();
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url; a.download = 'greenhouse_report.pdf';
+    a.click(); URL.revokeObjectURL(url);
+  } catch(e) { UI.toast(e.message, 'error'); }
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('icon-report').innerHTML = UI.icon.analytics;
+  document.getElementById('icon-dl-csv').innerHTML = UI.icon.download;
+  document.getElementById('icon-dl-pdf').innerHTML = UI.icon.download;
+  runReport();
+});
+</script>
+</body>
+</html>

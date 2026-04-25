@@ -1,0 +1,125 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Audit Logs - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+
+      <div id="denied" class="access-denied hidden">
+        <svg viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.5"><rect x="3" y="11" width="18" height="11" rx="2"/><path d="M7 11V7a5 5 0 0 1 10 0v4"/></svg>
+        <h2>Access Denied</h2>
+        <p>Only Farm Managers can view audit logs.</p>
+      </div>
+
+      <div id="admin-content">
+        <div class="page-header">
+          <div><h2>Audit Logs</h2><p>Complete system activity trail - all actions recorded</p></div>
+          <div class="page-header-actions">
+            <select id="f-action" class="form-control" style="width:auto;padding:7px 12px;" onchange="filterLogs()">
+              <option value="">All Actions</option>
+              <option value="LOGIN">Logins</option>
+              <option value="DEVICE_CONTROL">Device Control</option>
+              <option value="USER_CREATED">User Changes</option>
+              <option value="PASSWORD_RESET">Password Resets</option>
+            </select>
+            <button class="btn btn-outline" onclick="loadLogs()"><span class="header-icon" id="icon-sync-ad"></span> Refresh</button>
+          </div>
+        </div>
+
+        <div class="table-wrap">
+          <div class="table-head"><h3><span class="header-icon" id="icon-audit-ad"></span> System Activity</h3><span class="text-muted text-sm" id="log-count">Loading...</span></div>
+          <table>
+            <thead><tr><th>Timestamp</th><th>User</th><th>Action</th><th>Details</th><th>IP</th></tr></thead>
+            <tbody id="audit-tbody"><tr class="loading-row"><td colspan="5">Loading...</td></tr></tbody>
+          </table>
+          <div class="table-footer">
+            <div class="pagination-info" id="pag-info">Showing 0-0 of 0</div>
+            <div class="pagination-btns">
+              <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+              <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+let allLogs = [];
+
+document.addEventListener('DOMContentLoaded', () => {
+  if (!UI.isAdmin()) {
+    document.getElementById('admin-content').classList.add('hidden');
+    document.getElementById('denied').classList.remove('hidden');
+    return;
+  }
+  document.getElementById('icon-sync-ad').innerHTML = UI.icon.sync;
+  document.getElementById('icon-audit-ad').innerHTML = UI.icon.clipboard;
+  loadLogs();
+  setInterval(loadLogs, 2000);
+});
+
+async function loadLogs() {
+  try {
+    allLogs = await UI.apiFetch('/api/audit');
+    document.getElementById('log-count').textContent = allLogs.length + ' entries';
+    filterLogs();
+  } catch(e) { UI.toast(e.message, 'error'); }
+}
+
+let currentPage = 1;
+const pageSize = 10;
+let currentLogs = [];
+
+function filterLogs() {
+  const action = document.getElementById('f-action').value;
+  currentLogs = action ? allLogs.filter(l => l.action === action) : allLogs;
+  currentPage = 1;
+  renderTable();
+}
+
+function renderTable() {
+  const tb = document.getElementById('audit-tbody');
+  if (!currentLogs.length) { tb.innerHTML='<tr class="loading-row"><td colspan="5">No log entries found.</td></tr>'; return; }
+  
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = currentLogs.slice(start, end);
+
+  const colorMap = { LOGIN:'badge-green', DEVICE_CONTROL:'badge-gray', USER_CREATED:'badge-green', PASSWORD_RESET:'badge-orange', FAILED_LOGIN:'badge-red' };
+  tb.innerHTML = pageData.map(l => {
+    const bc = colorMap[l.action] || 'badge-gray';
+    return `<tr>
+      <td class="text-muted">${new Date(l.timestamp).toLocaleString()}</td>
+      <td class="fw-600">${l.username || 'System'}</td>
+      <td><span class="badge ${bc}">${l.action}</span></td>
+      <td>${l.details || '-'}</td>
+      <td class="text-muted">${l.ip_address || '-'}</td>
+    </tr>`;
+  }).join('');
+
+  const total = currentLogs.length;
+  document.getElementById('pag-info').textContent = `Showing ${total ? start + 1 : 0}-${Math.min(end, total)} of ${total}`;
+  document.getElementById('prev-btn').disabled = currentPage === 1;
+  document.getElementById('next-btn').disabled = end >= total;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+}
+
+</script>
+</body>
+</html>

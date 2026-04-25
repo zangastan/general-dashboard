@@ -1,0 +1,258 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Controls - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+
+      <!-- Mode Banner -->
+      <div class="card" style="margin-bottom:20px;">
+        <div class="d-flex align-center justify-between">
+          <div>
+            <h3 style="font-family:var(--font-head);font-size:1.1rem;font-weight:700;">System Operation Mode</h3>
+            <p class="text-muted text-sm mt-4">Select between centralized automation and direct operator control.</p>
+          </div>
+          <div class="mode-selector">
+            <button class="mode-btn active" id="mode-manual" onclick="setMode('manual')">MANUAL MODE</button>
+            <button class="mode-btn" id="mode-auto" onclick="setMode('auto')">AUTOMATIC</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Actuator Cards -->
+      <div class="three-col" style="margin-bottom:20px;">
+
+        <!-- Irrigation Pump -->
+        <div class="card">
+          <div class="d-flex align-center justify-between mb-12">
+            <div class="d-flex align-center gap-8">
+              <span class="header-icon" id="icon-pump"></span>
+              <div>
+                <div style="font-family:var(--font-head);font-weight:700;">Irrigation Pump</div>
+                <div class="ac-status-off mt-4" id="pump-status">STANDBY</div>
+              </div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="pump-toggle" onchange="toggleDevice('pump', this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="text-xs text-muted fw-700 mb-4" style="text-transform:uppercase;letter-spacing:.5px">Flow Duration</div>
+          <div class="d-flex justify-between text-xs text-muted mb-4">
+            <span id="pump-duration-val">12 mins</span>
+          </div>
+          <input type="range" id="pump-duration" min="0" max="60" value="12" oninput="document.getElementById('pump-duration-val').textContent=this.value+' mins'">
+          <div class="d-flex justify-between text-xs text-muted mt-4"><span>0m</span><span>30m</span><span>60m</span></div>
+        </div>
+
+        <!-- Window Vents -->
+        <div class="card">
+          <div class="d-flex align-center justify-between mb-12">
+            <div class="d-flex align-center gap-8">
+              <span class="header-icon" id="icon-window"></span>
+              <div>
+                <div style="font-family:var(--font-head);font-weight:700;">Window Vents</div>
+                <div class="ac-status-warn mt-4" id="vents-status">CLOSED</div>
+              </div>
+            </div>
+          </div>
+          <div class="d-flex gap-8 mb-12">
+            <button class="btn btn-outline btn-sm" style="flex:1" onclick="toggleDevice('vents','OPEN')">OPEN ALL</button>
+            <button class="btn btn-orange btn-sm" style="flex:1" onclick="toggleDevice('vents','CLOSED')">CLOSE ALL</button>
+          </div>
+          <div class="text-xs text-muted fw-700 mb-4" style="text-transform:uppercase;letter-spacing:.5px">Position</div>
+          <div class="d-flex justify-between text-xs mb-4">
+            <span>POSITION</span><span id="vents-pos" class="text-orange fw-700">0%</span>
+          </div>
+          <input type="range" id="vents-slider" min="0" max="100" value="0" oninput="document.getElementById('vents-pos').textContent=this.value+'%'">
+        </div>
+
+        <!-- Ventilation Fan -->
+        <div class="card">
+          <div class="d-flex align-center justify-between mb-12">
+            <div class="d-flex align-center gap-8">
+              <span class="header-icon" id="icon-fan"></span>
+              <div>
+                <div style="font-family:var(--font-head);font-weight:700;">Ventilation Fan</div>
+                <div class="ac-status-on mt-4" id="fan-status">RUNNING</div>
+              </div>
+            </div>
+            <label class="toggle-switch">
+              <input type="checkbox" id="fan-toggle" checked onchange="toggleDevice('fan', this.checked)">
+              <span class="toggle-slider"></span>
+            </label>
+          </div>
+          <div class="text-xs text-muted fw-700 mb-8" style="text-transform:uppercase;letter-spacing:.5px">Speed Selector</div>
+          <div class="speed-selector">
+            <button class="speed-btn" onclick="setSpeed('LOW',this)">LOW</button>
+            <button class="speed-btn active" onclick="setSpeed('MED',this)">MED</button>
+            <button class="speed-btn" onclick="setSpeed('HIGH',this)">HIGH</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Log + Emergency -->
+      <div class="two-col" style="margin-bottom:20px;">
+        <div class="table-wrap">
+          <div class="table-head">
+            <h3><span class="header-icon" id="icon-log-c"></span> Control Activity Log</h3>
+            <a href="#" class="card-link" onclick="exportLog(event)">EXPORT LOG</a>
+          </div>
+          <table>
+            <thead><tr><th>Action</th><th>Time</th><th>Operator</th></tr></thead>
+            <tbody id="log-tbody"><tr class="loading-row"><td colspan="3">Loading...</td></tr></tbody>
+          </table>
+          <div class="table-footer">
+            <div class="pagination-info" id="pag-info">Showing 0-0 of 0</div>
+            <div class="pagination-btns">
+              <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+              <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+            </div>
+          </div>
+        </div>
+
+        <div class="emergency-card">
+          <div class="e-icon" id="icon-siren-c"></div>
+          <h3>EMERGENCY STOP</h3>
+          <p>Kill power to all actuators immediately. This action cannot be undone automatically.</p>
+          <button class="btn btn-red btn-full" onclick="emergencyStop()">ACTIVATE SYSTEM KILL</button>
+          <div class="protocol">PROTOCOL 4-A ACTIVE</div>
+        </div>
+      </div>
+
+      <!-- Camera Feed -->
+      <div class="camera-feed">
+        <div class="camera-placeholder">
+          [ LIVE CAMERA 04 – ZONE ALPHA &nbsp;|&nbsp; Simulated Feed ]
+        </div>
+        <div class="camera-overlay">
+          <span class="camera-live-dot">LIVE CAMERA 04 – ZONE ALPHA</span>
+          <span>1080p | 60fps</span>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+let currentMode = 'manual';
+
+function setMode(m) {
+  currentMode = m;
+  document.getElementById('mode-manual').classList.toggle('active', m==='manual');
+  document.getElementById('mode-auto').classList.toggle('active', m==='auto');
+  UI.toast(`Switched to ${m === 'manual' ? 'Manual' : 'Automatic'} mode`, 'info');
+}
+
+function setSpeed(speed, el) {
+  document.querySelectorAll('.speed-btn').forEach(b=>b.classList.remove('active'));
+  el.classList.add('active');
+  UI.apiFetch('/api/control', {method:'POST', body:JSON.stringify({device:'fan', action:'SPEED_'+speed})})
+    .then(()=>UI.toast('Fan speed set to '+speed))
+    .catch(e=>UI.toast(e.message,'error'));
+}
+
+async function toggleDevice(device, on) {
+  const action = typeof on === 'boolean' ? (on ? 'ON' : 'OFF') : on;
+  try {
+    await UI.apiFetch('/api/control', {method:'POST', body:JSON.stringify({device, action})});
+    updateStatus(device, action);
+    UI.toast(`${device} -> ${action}`);
+    loadLog();
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+function updateStatus(device, action) {
+  const el = document.getElementById(`${device}-status`);
+  if (!el) return;
+  const on = action === 'ON' || action === 'OPEN' || action === 'RUNNING';
+  el.className = on ? 'ac-status-on mt-4' : (action==='CLOSED'||action==='STANDBY') ? 'ac-status-warn mt-4' : 'ac-status-off mt-4';
+  el.textContent = action;
+}
+
+async function emergencyStop() {
+  if (!confirm('EMERGENCY STOP: Shut down ALL actuators now?')) return;
+  try {
+    await Promise.all([
+      UI.apiFetch('/api/control', {method:'POST', body:JSON.stringify({device:'pump', action:'OFF'})}),
+      UI.apiFetch('/api/control', {method:'POST', body:JSON.stringify({device:'fan', action:'OFF'})}),
+      UI.apiFetch('/api/control', {method:'POST', body:JSON.stringify({device:'vents', action:'CLOSED'})})
+    ]);
+    UI.toast('Emergency stop executed.', 'error');
+    loadLog();
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+let logData = [];
+let currentPage = 1;
+const pageSize = 10;
+
+async function loadLog() {
+  try {
+    logData = await UI.apiFetch('/api/actuator-log');
+    renderTable();
+  } catch(e) { console.error('Log fetch failed', e); }
+}
+
+function renderTable() {
+  const tb = document.getElementById('log-tbody');
+  if (!logData.length) { tb.innerHTML = '<tr class="loading-row"><td colspan="3">No actions yet.</td></tr>'; return; }
+  
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = logData.slice(start, end);
+
+  tb.innerHTML = pageData.map(l => {
+    const dot = l.action==='ON'||l.action==='OPEN' ? 'green' : l.action==='CLOSED'||l.action==='OFF' ? 'orange' : 'blue';
+    const dotColor = dot==='green'?'var(--green-bar)':dot==='orange'?'var(--orange-warn)':'var(--blue-accent)';
+    return `<tr>
+      <td><span style="display:inline-block;width:8px;height:8px;border-radius:50%;background:${dotColor};margin-right:8px"></span>${l.device} ${l.action}</td>
+      <td class="text-muted">${timeSince(l.timestamp)}</td>
+      <td class="text-muted">${l.username || 'System'}</td>
+    </tr>`;
+  }).join('');
+
+  const total = logData.length;
+  document.getElementById('pag-info').textContent = `Showing ${start + 1}-${Math.min(end, total)} of ${total}`;
+  document.getElementById('prev-btn').disabled = currentPage === 1;
+  document.getElementById('next-btn').disabled = end >= total;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+}
+
+function exportLog() {
+  window.open('/api/reports/csv','_blank');
+}
+
+function timeSince(ts) {
+  const diff = Math.floor((Date.now()-new Date(ts).getTime())/60000);
+  if (diff<1) return 'just now';
+  if (diff<60) return diff+'m ago';
+  return Math.floor(diff/60)+'h ago';
+}
+
+document.addEventListener('DOMContentLoaded', () => { 
+  document.getElementById('icon-pump').innerHTML = UI.icon.hum;
+  document.getElementById('icon-window').innerHTML = UI.icon.window;
+  document.getElementById('icon-fan').innerHTML = UI.icon.fan;
+  document.getElementById('icon-log-c').innerHTML = UI.icon.sync;
+  document.getElementById('icon-siren-c').innerHTML = UI.icon.siren;
+  loadLog(); 
+  setInterval(loadLog, 2000); 
+});
+</script>
+</body>
+</html>

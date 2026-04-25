@@ -1,0 +1,94 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Imaging - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+
+      <div class="page-header">
+        <div>
+          <h2>Plant Imaging & AI Analysis</h2>
+          <p>ESP32-CAM metadata and health diagnostics</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-green" onclick="triggerCapture()"><span class="header-icon" id="icon-cam-ca" style="color:white;width:16px;height:16px;margin:0"></span> Capture Now</button>
+        </div>
+      </div>
+
+      <!-- Summary Cards -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;" id="summary-cards">
+        <div class="card"><div class="sc-label">Total Captures</div><div class="sc-value" id="total-caps">-</div></div>
+        <div class="card"><div class="sc-label">Healthy Plants</div><div class="sc-value text-green" id="healthy-count">-</div></div>
+        <div class="card"><div class="sc-label">Requires Attention</div><div class="sc-value text-orange" id="issue-count">-</div></div>
+      </div>
+
+      <!-- Image Grid -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;" id="image-grid">
+        <div style="grid-column:span 3;text-align:center;padding:40px;color:var(--neutral-500)">Loading captures...</div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+async function loadCamera() {
+  try {
+    const data = await UI.apiFetch('/api/camera-metadata');
+    const grid = document.getElementById('image-grid');
+    const total = data.length;
+    const healthy = data.filter(d=>d.analysis_result==='Healthy').length;
+    document.getElementById('total-caps').textContent = total;
+    document.getElementById('healthy-count').textContent = healthy;
+    document.getElementById('issue-count').textContent = total - healthy;
+
+    if (!total) {
+      grid.innerHTML = '<div style="grid-column:span 3;text-align:center;padding:40px;color:var(--neutral-500)">No captures yet. Click "Capture Now" to simulate.</div>';
+      return;
+    }
+
+    grid.innerHTML = data.map(item => {
+      const badgeClass = item.analysis_result === 'Healthy' ? 'badge-green' : item.analysis_result === 'Disease Detected' ? 'badge-red' : 'badge-orange';
+      return `<div class="card">
+        <div class="camera-feed" style="margin-bottom:12px">
+          <div class="camera-placeholder" style="height:160px;font-size:.78rem;color:var(--neutral-400)">
+            [ Simulated: ${item.filename} ]
+          </div>
+          <div class="camera-overlay">
+            <span class="camera-live-dot" style="font-size:.7rem">${item.filename}</span>
+          </div>
+        </div>
+        <div class="d-flex justify-between align-center">
+          <span class="badge ${badgeClass}">${item.analysis_result}</span>
+          <span class="text-xs text-muted">${new Date(item.timestamp).toLocaleString()}</span>
+        </div>
+      </div>`;
+    }).join('');
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+async function triggerCapture() {
+  try {
+    await UI.apiFetch('/api/camera/capture', {method:'POST'});
+    UI.toast('Capture triggered - refreshing...');
+    setTimeout(loadCamera, 1500);
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+document.addEventListener('DOMContentLoaded', () => { 
+  document.getElementById('icon-cam-ca').innerHTML = UI.icon.camera;
+  loadCamera(); 
+  setInterval(loadCamera, 2000); 
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,133 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Alerts - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+
+      <div class="page-header">
+        <div><h2>System Alerts</h2><p>Active warnings and critical notifications</p></div>
+        <div class="page-header-actions">
+          <select id="filter-sev" class="form-control" style="width:auto;padding:7px 12px" onchange="filterAlerts()">
+            <option value="">All Severities</option>
+            <option value="High">Critical</option>
+            <option value="Medium">Warning</option>
+            <option value="Low">Info</option>
+          </select>
+          <button class="btn btn-outline" onclick="loadAlerts()"><span class="header-icon" id="icon-sync-a"></span> Refresh</button>
+        </div>
+      </div>
+
+      <!-- Summary -->
+      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;">
+        <div class="card"><div class="sc-label">Critical</div><div class="sc-value text-red" id="cnt-high">-</div></div>
+        <div class="card"><div class="sc-label">Warnings</div><div class="sc-value text-orange" id="cnt-med">-</div></div>
+        <div class="card"><div class="sc-label">Info</div><div class="sc-value text-green" id="cnt-low">-</div></div>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><h3><span class="header-icon" id="icon-warn-a"></span> All Alerts</h3></div>
+        <table>
+          <thead><tr><th>Severity</th><th>Type</th><th>Message</th><th>Time</th><th>Action</th></tr></thead>
+          <tbody id="alerts-tbody"><tr class="loading-row"><td colspan="5">Loading...</td></tr></tbody>
+        </table>
+        <div class="table-footer">
+          <div class="pagination-info" id="pag-info">Showing 0-0 of 0</div>
+          <div class="pagination-btns">
+            <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+            <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+let allAlerts = [];
+
+async function loadAlerts() {
+  try {
+    allAlerts = await UI.apiFetch('/api/alerts');
+    document.getElementById('cnt-high').textContent = allAlerts.filter(a=>a.severity==='High').length;
+    document.getElementById('cnt-med').textContent  = allAlerts.filter(a=>a.severity==='Medium').length;
+    document.getElementById('cnt-low').textContent  = allAlerts.filter(a=>a.severity==='Low').length;
+    filterAlerts();
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+let currentPage = 1;
+const pageSize = 10;
+let currentAlerts = [];
+
+function filterAlerts() {
+  const sev = document.getElementById('filter-sev').value;
+  currentAlerts = sev ? allAlerts.filter(a=>a.severity===sev) : allAlerts;
+  currentPage = 1; // Reset to page 1 on filter
+  renderAlerts();
+}
+
+function renderAlerts() {
+  const tb = document.getElementById('alerts-tbody');
+  if (!currentAlerts.length) { tb.innerHTML='<tr class="loading-row"><td colspan="5">No alerts found.</td></tr>'; return; }
+  
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = currentAlerts.slice(start, end);
+
+  tb.innerHTML = pageData.map(a=>{
+    const bc = a.severity==='High' ? 'badge-red' : a.severity==='Medium' ? 'badge-orange' : 'badge-gray';
+    return `<tr>
+      <td><span class="badge ${bc}">${a.severity}</span></td>
+      <td class="fw-600">${a.type}</td>
+      <td>${a.message}</td>
+      <td class="text-muted">${timeSince(a.timestamp)}</td>
+      <td><button class="btn btn-outline btn-sm" onclick="markRead(${a.id}, this)">${a.is_read ? 'Read' : 'Mark Read'}</button></td>
+    </tr>`;
+  }).join('');
+
+  const total = currentAlerts.length;
+  document.getElementById('pag-info').textContent = `Showing ${total ? start + 1 : 0}-${Math.min(end, total)} of ${total}`;
+  document.getElementById('prev-btn').disabled = currentPage === 1;
+  document.getElementById('next-btn').disabled = end >= total;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderAlerts();
+}
+
+async function markRead(id, btn) {
+  try {
+    await UI.apiFetch('/api/alerts/'+id+'/read', {method:'POST'});
+    btn.textContent = 'Read';
+    btn.disabled = true;
+    UI.toast('Alert marked as read');
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+function timeSince(ts) {
+  const diff = Math.floor((Date.now()-new Date(ts).getTime())/60000);
+  if (diff<1) return 'just now'; if (diff<60) return diff+'m ago';
+  return Math.floor(diff/60)+'h ago';
+}
+
+document.addEventListener('DOMContentLoaded', () => { 
+  document.getElementById('icon-sync-a').innerHTML = UI.icon.sync;
+  document.getElementById('icon-warn-a').innerHTML = UI.icon.warn;
+  loadAlerts(); 
+  setInterval(loadAlerts, 2000); 
+});
+</script>
+</body>
+</html>

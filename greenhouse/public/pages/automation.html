@@ -1,0 +1,157 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Automation - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+
+      <div class="page-header">
+        <div><h2>Automation Rules</h2><p>Configure IF–THEN triggers for actuators</p></div>
+        <button class="btn btn-green" onclick="openModal()">+ NEW RULE</button>
+      </div>
+
+      <div class="table-wrap">
+        <div class="table-head"><h3><span class="header-icon" id="icon-robot-au"></span> Active Rules</h3></div>
+        <table>
+          <thead><tr><th>Status</th><th>Rule Name</th><th>Trigger</th><th>Action</th><th>Controls</th></tr></thead>
+          <tbody id="rules-tbody"><tr class="loading-row"><td colspan="5">Loading...</td></tr></tbody>
+        </table>
+        <div class="table-footer">
+          <div class="pagination-info" id="pag-info">Showing 0-0 of 0</div>
+          <div class="pagination-btns">
+            <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+            <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Modal -->
+      <div id="rule-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.5);z-index:999;display:flex;align-items:center;justify-content:center">
+        <div class="card" style="width:460px;border-radius:var(--radius-lg);">
+          <div class="card-header"><h3>Create Automation Rule</h3><button onclick="closeModal()" style="background:none;border:none;font-size:1.2rem;cursor:pointer">×</button></div>
+          <form id="rule-form">
+            <div class="form-group"><label>Rule Name</label><input id="r-name" class="form-control" required placeholder="e.g. Auto-Irrigation"></div>
+            <div class="form-group"><label>Trigger Sensor</label>
+              <select id="r-sensor" class="form-control">
+                <option value="Temperature">Temperature</option>
+                <option value="Humidity">Humidity</option>
+                <option value="Soil Moisture">Soil Moisture</option>
+              </select>
+            </div>
+            <div class="form-group"><label>Condition</label>
+              <select id="r-cond" class="form-control"><option value="<">Below (&lt;)</option><option value=">">Above (&gt;)</option></select>
+            </div>
+            <div class="form-group"><label>Threshold Value</label><input id="r-val" class="form-control" type="number" required placeholder="e.g. 25"></div>
+            <div class="form-group"><label>Action Device</label>
+              <select id="r-device" class="form-control"><option value="pump">Water Pump</option><option value="fan">Ventilation Fan</option><option value="vents">Vent Windows</option></select>
+            </div>
+            <div class="form-group"><label>Action</label>
+              <select id="r-action" class="form-control"><option value="ON">Turn ON</option><option value="OFF">Turn OFF</option><option value="OPEN">OPEN</option><option value="CLOSED">CLOSE</option></select>
+            </div>
+            <div id="r-err" class="form-error"></div>
+            <div class="d-flex gap-8" style="justify-content:flex-end">
+              <button type="button" class="btn btn-outline" onclick="closeModal()">Cancel</button>
+              <button type="submit" class="btn btn-green">CREATE RULE</button>
+            </div>
+          </form>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+let allRules = [];
+let currentPage = 1;
+const pageSize = 10;
+
+async function loadRules() {
+  try {
+    allRules = await UI.apiFetch('/api/automation');
+    renderTable();
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+function renderTable() {
+  const tb = document.getElementById('rules-tbody');
+  if (!allRules.length) { tb.innerHTML='<tr class="loading-row"><td colspan="5">No rules configured.</td></tr>'; return; }
+  
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = allRules.slice(start, end);
+
+  tb.innerHTML = pageData.map(r=>`<tr>
+    <td><span class="badge ${r.is_active ? 'badge-green' : 'badge-gray'}">${r.is_active ? 'ACTIVE' : 'DISABLED'}</span></td>
+    <td class="fw-600">${r.name}</td>
+    <td class="text-muted">IF ${r.trigger_sensor} ${r.condition} ${r.trigger_value}</td>
+    <td>-> ${r.action_device} ${r.action_value}</td>
+    <td class="d-flex gap-8">
+      <button class="btn btn-outline btn-sm" onclick="toggleRule(${r.id}, ${r.is_active})">${r.is_active ? 'Disable' : 'Enable'}</button>
+      <button class="btn btn-sm" style="background:var(--red-bg);color:var(--red-crit);border:1px solid #ef9a9a" onclick="deleteRule(${r.id})">Delete</button>
+    </td>
+  </tr>`).join('');
+
+  const total = allRules.length;
+  document.getElementById('pag-info').textContent = `Showing ${total ? start + 1 : 0}-${Math.min(end, total)} of ${total}`;
+  document.getElementById('prev-btn').disabled = currentPage === 1;
+  document.getElementById('next-btn').disabled = end >= total;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+}
+
+async function toggleRule(id, current) {
+  try {
+    await UI.apiFetch('/api/automation/'+id+'/toggle', {method:'POST', body:JSON.stringify({active: !current})});
+    UI.toast('Rule updated'); loadRules();
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+async function deleteRule(id) {
+  if (!confirm('Delete this rule?')) return;
+  try {
+    await UI.apiFetch('/api/automation/'+id, {method:'DELETE'});
+    UI.toast('Rule deleted'); loadRules();
+  } catch(e) { UI.toast(e.message,'error'); }
+}
+
+function openModal() { document.getElementById('rule-modal').classList.remove('hidden'); }
+function closeModal() { document.getElementById('rule-modal').classList.add('hidden'); }
+
+document.getElementById('rule-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = document.getElementById('r-err');
+  err.classList.remove('show');
+  try {
+    await UI.apiFetch('/api/automation', {method:'POST', body: JSON.stringify({
+      name: document.getElementById('r-name').value,
+      trigger_sensor: document.getElementById('r-sensor').value,
+      condition: document.getElementById('r-cond').value,
+      trigger_value: +document.getElementById('r-val').value,
+      action_device: document.getElementById('r-device').value,
+      action_value: document.getElementById('r-action').value,
+    })});
+    UI.toast('Rule created!'); closeModal(); loadRules();
+  } catch(ex) { err.textContent=ex.message; err.classList.add('show'); }
+});
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('icon-robot-au').innerHTML = UI.icon.robot;
+  loadRules();
+  setInterval(loadRules, 2000);
+});
+</script>
+</body>
+</html>

@@ -1,0 +1,213 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Dashboard - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+
+      <!-- Page Header -->
+      <div class="page-header">
+        <div>
+          <h2>Zone 01 Dashboard</h2>
+          <p>Hydroponic Lettuce Array • Batch #8842</p>
+        </div>
+        <div class="page-header-actions">
+          <span class="live-badge">LIVE DATA</span>
+        </div>
+      </div>
+
+      <!-- Sensor Cards -->
+      <div class="sensor-grid" id="sensor-grid">
+        <div class="sensor-card"><div class="sc-top"><div class="sc-icon green" id="icon-temp"></div><span class="sc-status" id="s-temp-st">-</span></div><div class="sc-label">Temperature</div><div class="sc-value" id="s-temp-val">-</div><div class="sc-bar"><div class="sc-bar-fill" id="s-temp-bar" style="width:0%"></div></div></div>
+        <div class="sensor-card"><div class="sc-top"><div class="sc-icon green" id="icon-hum"></div><span class="sc-status" id="s-hum-st">-</span></div><div class="sc-label">Humidity</div><div class="sc-value" id="s-hum-val">-</div><div class="sc-bar"><div class="sc-bar-fill" id="s-hum-bar" style="width:0%"></div></div></div>
+        <div class="sensor-card"><div class="sc-top"><div class="sc-icon orange" id="icon-moist"></div><span class="sc-status" id="s-moist-st">-</span></div><div class="sc-label">Soil Moisture</div><div class="sc-value" id="s-moist-val">-</div><div class="sc-bar"><div class="sc-bar-fill" id="s-moist-bar" style="width:0%"></div></div></div>
+      </div>
+
+      <!-- Actuator Controls -->
+      <div class="actuator-grid" id="actuator-grid">
+        <div class="actuator-card">
+          <div class="ac-header">
+            <div class="ac-title"><span class="header-icon" id="icon-pump-d"></span> Water Pump</div>
+            <span class="ac-status-off" id="pump-status">STANDBY</span>
+          </div>
+          <div class="ac-actions">
+            <span>Toggle Status</span>
+            <button class="btn btn-green btn-sm" onclick="toggleDevice('pump','ON')" id="pump-btn">ACTIVATE</button>
+          </div>
+        </div>
+        <div class="actuator-card">
+          <div class="ac-header">
+            <div class="ac-title"><span class="header-icon" id="icon-window-d"></span> Vent Windows</div>
+            <span class="ac-status-warn" id="vents-status">CLOSED</span>
+          </div>
+          <div class="ac-actions">
+            <span>Toggle Status</span>
+            <button class="btn btn-outline btn-sm" onclick="toggleDevice('vents','OPEN')" id="vents-btn">OPEN NOW</button>
+          </div>
+        </div>
+        <div class="actuator-card">
+          <div class="ac-header">
+            <div class="ac-title"><span class="header-icon" id="icon-fan-d"></span> Air Circulation</div>
+            <span class="ac-status-on" id="fan-status">ON</span>
+          </div>
+          <div class="ac-actions">
+            <span>Toggle Status</span>
+            <button class="btn btn-green btn-sm" onclick="toggleDevice('fan','OFF')" id="fan-btn">DEACTIVATE</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Alerts + System Health -->
+      <div class="two-col">
+        <div class="table-wrap">
+          <div class="table-head">
+            <h3><span class="header-icon" id="icon-warn-d"></span> Critical Alerts</h3>
+            <a href="alerts" class="card-link">VIEW ALL</a>
+          </div>
+          <div id="alert-list"><div style="padding:30px;text-align:center;color:var(--neutral-500);font-size:.85rem">Loading...</div></div>
+        </div>
+
+        <div class="card">
+          <div class="card-header"><h3>System Health</h3></div>
+          <div class="health-row"><span>WiFi Strength</span><strong id="h-wifi">- dBm</strong></div>
+          <div class="health-row"><span>Uptime</span><strong id="h-uptime">-</strong></div>
+          <div class="health-row"><span>CPU Load</span><strong id="h-cpu">-</strong></div>
+          <div class="all-systems">
+            <div class="all-systems-icon" id="icon-check-d"></div>
+            <div><p>ALL SYSTEMS GO</p><span>No hardware faults detected.</span></div>
+          </div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+const statusMap = {
+  Temperature: v => v > 30 ? ['warning','HIGH'] : ['optimal','OPTIMAL'],
+  Humidity:    v => v < 40 ? ['warning','LOW'] : v > 75 ? ['warning','HIGH'] : ['stable','STABLE'],
+  'Soil Moisture': v => v < 20 ? ['critical','CRITICAL'] : v < 30 ? ['warning','WARNING'] : ['optimal','OPTIMAL'],
+};
+
+function applyBar(barEl, val, max=100) {
+  barEl.style.width = Math.min(100, (val/max)*100)+'%';
+}
+
+async function loadSensors() {
+  try {
+    const data = await UI.apiFetch('/api/sensors');
+    data.forEach(s => {
+      if (s.type === 'Temperature') {
+        const [cls, lbl] = statusMap.Temperature(+s.value);
+        document.getElementById('s-temp-val').textContent = s.value + s.unit;
+        const st = document.getElementById('s-temp-st');
+        st.textContent = lbl; st.className = 'sc-status ' + cls;
+        applyBar(document.getElementById('s-temp-bar'), +s.value, 50);
+      }
+      if (s.type === 'Humidity') {
+        const [cls, lbl] = statusMap.Humidity(+s.value);
+        document.getElementById('s-hum-val').textContent = s.value + s.unit;
+        const st = document.getElementById('s-hum-st');
+        st.textContent = lbl; st.className = 'sc-status ' + cls;
+        applyBar(document.getElementById('s-hum-bar'), +s.value);
+      }
+      if (s.type === 'Soil Moisture') {
+        const [cls, lbl] = statusMap['Soil Moisture'](+s.value);
+        document.getElementById('s-moist-val').textContent = s.value + s.unit;
+        const st = document.getElementById('s-moist-st');
+        st.textContent = lbl; st.className = 'sc-status ' + cls;
+        const bar = document.getElementById('s-moist-bar');
+        applyBar(bar, +s.value);
+        bar.className = 'sc-bar-fill' + (cls === 'critical' ? ' crit' : cls === 'warning' ? ' warn' : '');
+      }
+    });
+  } catch(e) { console.error('Sensor fetch failed', e); }
+}
+
+async function loadAlerts() {
+  try {
+    const data = await UI.apiFetch('/api/alerts');
+    const el = document.getElementById('alert-list');
+    if (!data.length) { el.innerHTML = '<div style="padding:30px;text-align:center;color:var(--neutral-500);font-size:.85rem">No active alerts.</div>'; return; }
+    el.innerHTML = data.slice(0,5).map(a => {
+      const dot = a.severity === 'High' ? 'crit' : a.severity === 'Medium' ? 'warn' : 'ok';
+      const age = timeSince(a.timestamp);
+      return `<div class="alert-item">
+        <div class="alert-dot ${dot}"></div>
+        <div class="alert-info"><p>${a.message}</p><span>${a.type}</span></div>
+        <span class="alert-time">${age}</span>
+      </div>`;
+    }).join('');
+  } catch(e) { console.error('Alert fetch failed', e); }
+}
+
+async function loadHealth() {
+  // Simulated metrics from server uptime
+  document.getElementById('h-wifi').textContent = '-42 dBm';
+  document.getElementById('h-uptime').textContent = formatUptime();
+  document.getElementById('h-cpu').textContent = (10 + Math.floor(Math.random()*15)) + '%';
+}
+
+function formatUptime() {
+  const start = localStorage.getItem('session_start') || Date.now();
+  if (!localStorage.getItem('session_start')) localStorage.setItem('session_start', Date.now());
+  const diff = Date.now() - +start;
+  const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
+  return `${h}h ${m}m`;
+}
+
+function timeSince(ts) {
+  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
+  if (diff < 1) return 'just now';
+  if (diff < 60) return diff + 'm ago';
+  return Math.floor(diff/60) + 'h ago';
+}
+
+async function toggleDevice(device, action) {
+  try {
+    await UI.apiFetch('/api/control', { method:'POST', body: JSON.stringify({ device, action }) });
+    UI.toast(`${device} set to ${action}`, 'success');
+    refreshActuators(device, action);
+  } catch(e) { UI.toast(e.message, 'error'); }
+}
+
+function refreshActuators(device, action) {
+  const statusEl = document.getElementById(`${device}-status`);
+  const btnEl = document.getElementById(`${device}-btn`);
+  if (!statusEl) return;
+  if (action === 'ON' || action === 'OPEN') {
+    statusEl.className = 'ac-status-on'; statusEl.textContent = action;
+    btnEl.textContent = 'DEACTIVATE'; btnEl.onclick = () => toggleDevice(device, device === 'vents' ? 'CLOSED' : 'OFF');
+  } else {
+    statusEl.className = 'ac-status-off'; statusEl.textContent = action;
+    btnEl.textContent = 'ACTIVATE'; btnEl.onclick = () => toggleDevice(device, device === 'vents' ? 'OPEN' : 'ON');
+  }
+}
+
+function boot() {
+  document.getElementById('icon-temp').innerHTML = UI.icon.temp;
+  document.getElementById('icon-hum').innerHTML = UI.icon.hum;
+  document.getElementById('icon-moist').innerHTML = UI.icon.moist;
+  document.getElementById('icon-pump-d').innerHTML = UI.icon.hum;
+  document.getElementById('icon-window-d').innerHTML = UI.icon.window;
+  document.getElementById('icon-fan-d').innerHTML = UI.icon.fan;
+  document.getElementById('icon-warn-d').innerHTML = UI.icon.warn;
+  document.getElementById('icon-check-d').innerHTML = UI.icon.check;
+  loadSensors(); loadAlerts(); loadHealth();
+  setInterval(loadSensors, 2000);
+  setInterval(loadAlerts, 2000);
+}
+document.addEventListener('DOMContentLoaded', boot);
+</script>
+</body>
+</html>

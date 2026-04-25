@@ -1,0 +1,19 @@
+{
+  "name": "greenhouse-monitor",
+  "version": "1.0.0",
+  "description": "Industrial Smart Greenhouse Monitoring and Control System",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js",
+    "init-db": "node db/init.js",
+    "simulate": "node simulator/esp32Simulator.js"
+  },
+  "dependencies": {
+    "sqlite3": "^5.1.7",
+    "bcrypt": "^5.1.1",
+    "jsonwebtoken": "^9.0.2",
+    "pdfkit": "^0.15.0"
+  },
+  "author": "",
+  "license": "ISC"
+}

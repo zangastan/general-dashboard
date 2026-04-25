@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Environmental Monitoring - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+
+      <div class="page-header">
+        <div>
+          <h2>Environmental Monitoring</h2>
+          <p>Real-time climate dynamics across Zone A-14 and B-2</p>
+        </div>
+        <div class="page-header-actions">
+          <button class="btn btn-outline" id="btn-24h"><span class="header-icon" id="icon-cal"></span> Last 24 Hours</button>
+          <a href="../pages/reports" class="btn btn-green"><span class="header-icon" id="icon-dl" style="color:white;width:16px;height:16px;margin:0"></span> Download CSV</a>
+        </div>
+      </div>
+
+      <div class="two-col" style="grid-template-columns:1fr 300px;align-items:start;">
+        <!-- Charts Column -->
+        <div>
+          <!-- Temperature -->
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+              <h3><span class="header-icon" id="icon-temp"></span> Temperature Trend</h3>
+              <span style="font-size:.75rem;font-weight:700;color:var(--green-bar);">SAFE: 22°C – 28°C</span>
+            </div>
+            <div class="chart-area"><canvas id="chart-temp"></canvas></div>
+          </div>
+          <!-- Humidity -->
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+              <h3><span class="header-icon" id="icon-hum"></span> Relative Humidity</h3>
+              <span style="font-size:.75rem;font-weight:700;color:var(--green-bar);">SAFE: 55% – 70%</span>
+            </div>
+            <div class="chart-area"><canvas id="chart-hum"></canvas></div>
+          </div>
+          <!-- Soil Moisture -->
+          <div class="card" style="margin-bottom:16px;">
+            <div class="card-header">
+              <h3><span class="header-icon" id="icon-moist"></span> Soil Moisture Content</h3>
+              <span style="font-size:.75rem;font-weight:700;color:var(--green-bar);">SAFE: 35% – 50%</span>
+            </div>
+            <div class="chart-area"><canvas id="chart-moist"></canvas></div>
+          </div>
+
+          <!-- Historical Table -->
+          <div class="table-wrap">
+            <div class="table-head">
+              <h3><span class="header-icon" id="icon-audit"></span> Historical Data Logs</h3>
+            </div>
+            <table>
+              <thead><tr><th>Timestamp</th><th>Type</th><th>Value</th><th>Unit</th></tr></thead>
+              <tbody id="history-tbody">
+                <tr class="loading-row"><td colspan="4">Loading...</td></tr>
+              </tbody>
+            </table>
+            <div class="table-footer">
+              <div class="pagination-info" id="pag-info">Showing 0-0 of 0</div>
+              <div class="pagination-btns">
+                <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+                <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Right Panel -->
+        <div>
+          <div class="card">
+            <div class="card-header"><h3>Active Sensors</h3></div>
+            <div id="active-sensors"><p style="color:var(--neutral-500);font-size:.82rem">Loading...</p></div>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+let historyData = [];
+
+function drawLineChart(canvasId, points, color) {
+  const canvas = document.getElementById(canvasId);
+  if (!canvas) return;
+  const ctx = canvas.getContext('2d');
+  canvas.width = canvas.offsetWidth;
+  canvas.height = canvas.offsetHeight;
+  const w = canvas.width, h = canvas.height;
+  const pad = 10;
+  const min = Math.min(...points) - 2;
+  const max = Math.max(...points) + 2;
+  const scaleY = v => h - pad - ((v - min) / (max - min)) * (h - 2*pad);
+  const scaleX = (i, len) => pad + (i / (len-1)) * (w - 2*pad);
+
+  ctx.clearRect(0, 0, w, h);
+
+  // Safe zone fill
+  const safeTop = scaleY(max - 2);
+  const safeBot = scaleY(min + 2);
+  ctx.fillStyle = 'rgba(46,125,50,.06)';
+  ctx.fillRect(pad, safeTop, w-2*pad, safeBot - safeTop);
+
+  // Grid lines
+  ctx.strokeStyle = 'rgba(0,0,0,.05)'; ctx.lineWidth = 1;
+  for (let i = 0; i < 4; i++) {
+    const y = pad + (i/3)*(h-2*pad);
+    ctx.beginPath(); ctx.moveTo(pad,y); ctx.lineTo(w-pad,y); ctx.stroke();
+  }
+
+  // Line
+  ctx.strokeStyle = color; ctx.lineWidth = 2;
+  ctx.beginPath();
+  points.forEach((v,i) => {
+    const x = scaleX(i, points.length);
+    const y = scaleY(v);
+    i === 0 ? ctx.moveTo(x,y) : ctx.lineTo(x,y);
+  });
+  ctx.stroke();
+
+  // Fill under line
+  ctx.fillStyle = color + '22';
+  ctx.lineTo(scaleX(points.length-1, points.length), h-pad);
+  ctx.lineTo(scaleX(0, points.length), h-pad);
+  ctx.closePath(); ctx.fill();
+}
+
+let currentPage = 1;
+const pageSize = 10;
+
+async function loadHistory() {
+  try {
+    historyData = await UI.apiFetch('/api/sensor-history');
+    const temps = historyData.filter(r=>r.type==='Temperature').slice(0,20).map(r=>+r.value).reverse();
+    const hums  = historyData.filter(r=>r.type==='Humidity').slice(0,20).map(r=>+r.value).reverse();
+    const moists = historyData.filter(r=>r.type==='Soil Moisture').slice(0,20).map(r=>+r.value).reverse();
+
+    if (temps.length > 1) drawLineChart('chart-temp', temps, '#2e7d32');
+    if (hums.length > 1)  drawLineChart('chart-hum',  hums,  '#0054a7');
+    if (moists.length > 1)drawLineChart('chart-moist',moists,'#7b4f2e');
+
+    renderTable();
+    renderActiveSensors(historyData);
+  } catch(e) { console.error(e); }
+}
+
+function renderTable() {
+  const tb = document.getElementById('history-tbody');
+  if (!historyData.length) { tb.innerHTML = '<tr class="loading-row"><td colspan="4">No data yet.</td></tr>'; return; }
+  
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = historyData.slice(start, end);
+  
+  tb.innerHTML = pageData.map(r=>`
+    <tr>
+      <td>${new Date(r.timestamp).toLocaleString()}</td>
+      <td class="fw-600">${r.type}</td>
+      <td><strong>${r.value}</strong></td>
+      <td class="text-muted">${r.unit}</td>
+    </tr>`).join('');
+
+  // Update pagination
+  const total = historyData.length;
+  document.getElementById('pag-info').textContent = `Showing ${start + 1}-${Math.min(end, total)} of ${total}`;
+  document.getElementById('prev-btn').disabled = currentPage === 1;
+  document.getElementById('next-btn').disabled = end >= total;
+}
+
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+}
+
+function renderActiveSensors(data) {
+  const el = document.getElementById('active-sensors');
+  const types = ['Temperature','Humidity','Soil Moisture'];
+  el.innerHTML = types.map(type => {
+    const readings = data.filter(r=>r.type===type).slice(0,10).map(r=>+r.value);
+    if (!readings.length) return '';
+    const latest = readings[0], mn = Math.min(...readings), mx = Math.max(...readings);
+    const pct = Math.round(((latest-mn)/(mx-mn||1))*100);
+    const colorClass = type==='Humidity'?'blue':type==='Soil Moisture'?'orange':'green';
+    return `<div class="stat-row">
+      <div class="stat-row-top">
+        <span class="stat-row-label">${type}</span>
+        <span class="stat-row-value ${colorClass}">${latest.toFixed(1)}</span>
+      </div>
+      <div class="stat-bar"><div class="stat-bar-fill ${colorClass}" style="width:${pct}%"></div></div>
+      <div class="stat-minmax"><span>MIN: ${mn.toFixed(1)}</span><span>MAX: ${mx.toFixed(1)}</span></div>
+    </div>`;
+  }).join('');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('icon-temp').innerHTML = UI.icon.temp;
+  document.getElementById('icon-hum').innerHTML = UI.icon.hum;
+  document.getElementById('icon-moist').innerHTML = UI.icon.moist;
+  document.getElementById('icon-audit').innerHTML = UI.icon.audit;
+  document.getElementById('icon-cal').innerHTML = UI.icon.calendar;
+  document.getElementById('icon-dl').innerHTML = UI.icon.download;
+  loadHistory();
+  setInterval(loadHistory, 2000);
+});
+</script>
+</body>
+</html>

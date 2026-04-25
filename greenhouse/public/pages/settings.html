@@ -1,0 +1,131 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>Settings - Greenhouse CMS</title>
+  <link rel="stylesheet" href="../css/style.css">
+</head>
+<body>
+<div class="app">
+  <aside class="sidebar" id="sidebar"></aside>
+  <div class="main">
+    <header class="topbar" id="topbar"></header>
+    <div class="page-body">
+      <div class="page-header">
+        <div><h2>System Settings</h2><p>Configure thresholds, preferences, and system behaviour</p></div>
+      </div>
+
+      <div style="display:grid;grid-template-columns:1fr 1fr;gap:20px;">
+        <!-- Sensor Thresholds -->
+        <div class="card">
+          <div class="card-header"><h3><span class="header-icon" id="icon-thresh"></span> Sensor Alert Thresholds</h3></div>
+          <form id="thresh-form">
+            <div class="form-group"><label>Max Temperature Warning (°C)</label><input id="t-max-temp" class="form-control" type="number" value="30"></div>
+            <div class="form-group"><label>Min Temperature Warning (°C)</label><input id="t-min-temp" class="form-control" type="number" value="18"></div>
+            <div class="form-group"><label>Max Humidity Warning (%)</label><input id="t-max-hum" class="form-control" type="number" value="75"></div>
+            <div class="form-group"><label>Min Humidity Warning (%)</label><input id="t-min-hum" class="form-control" type="number" value="40"></div>
+            <div class="form-group"><label>Min Soil Moisture Critical (%)</label><input id="t-min-moist" class="form-control" type="number" value="20"></div>
+            <button type="submit" class="btn btn-green">SAVE THRESHOLDS</button>
+          </form>
+        </div>
+
+        <!-- System Preferences -->
+        <div class="card">
+          <div class="card-header"><h3><span class="header-icon" id="icon-pref"></span> System Preferences</h3></div>
+          <form id="pref-form">
+            <div class="form-group"><label>IoT Data Sync Interval (seconds)</label><input id="p-interval" class="form-control" type="number" value="5" min="2"></div>
+            <div class="form-group"><label>Alert Retention (days)</label><input id="p-retention" class="form-control" type="number" value="30"></div>
+            <div class="form-group"><label>Camera Capture Mode</label>
+              <select id="p-cam-mode" class="form-control">
+                <option value="auto">Automatic (every 30 mins)</option>
+                <option value="manual">Manual Only</option>
+              </select>
+            </div>
+            <div class="form-group"><label>System Timezone</label>
+              <select id="p-tz" class="form-control">
+                <option>UTC</option><option>Africa/Nairobi</option><option>Europe/London</option><option>America/New_York</option>
+              </select>
+            </div>
+            <button type="submit" class="btn btn-green">SAVE PREFERENCES</button>
+          </form>
+        </div>
+
+        <!-- Change Password -->
+        <div class="card">
+          <div class="card-header"><h3><span class="header-icon" id="icon-pwd"></span> Change My Password</h3></div>
+          <form id="pwd-form">
+            <div class="form-group"><label>Current Password</label><input id="old-pwd" class="form-control" type="password" required></div>
+            <div class="form-group"><label>New Password</label><input id="new-pwd" class="form-control" type="password" required minlength="6"></div>
+            <div class="form-group"><label>Confirm New Password</label><input id="confirm-pwd" class="form-control" type="password" required minlength="6"></div>
+            <div id="pwd-err" class="form-error"></div>
+            <button type="submit" class="btn btn-green">UPDATE PASSWORD</button>
+          </form>
+        </div>
+
+        <!-- System Info -->
+        <div class="card">
+          <div class="card-header"><h3><span class="header-icon" id="icon-info"></span> System Information</h3></div>
+          <div class="health-row"><span>System Version</span><strong>v2.4.0</strong></div>
+          <div class="health-row"><span>Database</span><strong>SQLite 3</strong></div>
+          <div class="health-row"><span>Runtime</span><strong>Node.js v18</strong></div>
+          <div class="health-row"><span>IoT Protocol</span><strong>ESP32 / MQTT-sim</strong></div>
+          <div class="health-row"><span>Server Uptime</span><strong id="si-uptime">Loading...</strong></div>
+          <div class="health-row"><span>Total Sensor Readings</span><strong id="si-readings">Loading...</strong></div>
+          <div class="health-row"><span>Total Alerts</span><strong id="si-alerts">Loading...</strong></div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script src="../js/ui.js"></script>
+<script>
+document.getElementById('thresh-form').addEventListener('submit', e => {
+  e.preventDefault();
+  UI.toast('Thresholds saved (local session)');
+});
+
+document.getElementById('pref-form').addEventListener('submit', e => {
+  e.preventDefault();
+  UI.toast('Preferences saved (local session)');
+});
+
+document.getElementById('pwd-form').addEventListener('submit', async e => {
+  e.preventDefault();
+  const err = document.getElementById('pwd-err');
+  const np = document.getElementById('new-pwd').value;
+  const cp = document.getElementById('confirm-pwd').value;
+  err.classList.remove('show');
+  if (np !== cp) { err.textContent = 'Passwords do not match.'; return err.classList.add('show'); }
+  try {
+    const user = UI.getUser();
+    await UI.apiFetch('/api/auth/reset-password', {
+      method: 'POST',
+      body: JSON.stringify({ username: user.username, oldPassword: document.getElementById('old-pwd').value, newPassword: np })
+    });
+    UI.toast('Password updated successfully');
+    document.getElementById('pwd-form').reset();
+  } catch(ex) { err.textContent = ex.message; err.classList.add('show'); }
+});
+
+async function loadStats() {
+  try {
+    const stats = await UI.apiFetch('/api/stats');
+    document.getElementById('si-uptime').textContent   = stats.uptime   || '-';
+    document.getElementById('si-readings').textContent = stats.readings || '-';
+    document.getElementById('si-alerts').textContent   = stats.alerts   || '-';
+  } catch(e) {}
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('icon-thresh').innerHTML = UI.icon.temp;
+  document.getElementById('icon-pref').innerHTML = UI.icon.settings;
+  document.getElementById('icon-pwd').innerHTML = UI.icon.lock;
+  document.getElementById('icon-info').innerHTML = UI.icon.sync;
+  loadStats();
+  setInterval(loadStats, 2000);
+});
+</script>
+</body>
+</html>
