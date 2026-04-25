@@ -74,7 +74,7 @@ async function router(req, res) {
     // AI Analysis
     if (pathname === '/api/analysis' || pathname === '/api/analysis/') {
       if (method === 'GET')  return analysisCtrl.listRecords(req, res);
-      if (method === 'POST') return analysisCtrl.createRecord(req, res);
+      if (method === 'POST') return analysisCtrl.createRecord(req, res, body);
     }
     if (method === 'GET' && pathname.startsWith('/api/analysis/')) {
       const parts = pathname.split('/');

@@ -115,6 +115,9 @@ db.serialize(async () => {
         description TEXT,
         action_taken TEXT,
         recommendation TEXT,
+        greenness_value REAL,
+        brightness_value REAL,
+        analysis_text TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
 
