@@ -9,6 +9,7 @@ const ctrlCtrl   = require('./controllers/controlController');
 const userCtrl   = require('./controllers/userController');
 const dataCtrl   = require('./controllers/dataController');
 const reportCtrl = require('./controllers/reportController');
+const analysisCtrl = require('./controllers/analysisController');
 
 const PORT      = 3000;
 const PUBLIC_DIR = path.join(__dirname, 'public');
@@ -69,6 +70,25 @@ async function router(req, res) {
     // Auth
     if (method === 'POST' && pathname === '/api/auth/login')          return authCtrl.login(req, res, body);
     if (method === 'POST' && pathname === '/api/auth/reset-password') return authCtrl.resetPassword(req, res, body);
+    
+    // AI Analysis
+    if (pathname === '/api/analysis' || pathname === '/api/analysis/') {
+      if (method === 'GET')  return analysisCtrl.listRecords(req, res);
+      if (method === 'POST') return analysisCtrl.createRecord(req, res);
+    }
+    if (method === 'GET' && pathname.startsWith('/api/analysis/')) {
+      const parts = pathname.split('/');
+      const id = parts[3];
+      if (parts[4] === 'export') {
+        if (query.format === 'pdf') return analysisCtrl.exportPDF(req, res, id);
+        return analysisCtrl.exportCSV(req, res, id);
+      }
+      if (id) return analysisCtrl.getRecord(req, res, id);
+    }
+    if (method === 'GET' && pathname === '/api/analysis-export') {
+      if (query.format === 'pdf') return analysisCtrl.exportPDF(req, res);
+      return analysisCtrl.exportCSV(req, res);
+    }
 
     // Sensors
     if (method === 'GET' && pathname === '/api/sensors')              return sensorCtrl.getLatest(req, res);

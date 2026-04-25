@@ -106,6 +106,18 @@ db.serialize(async () => {
         FOREIGN KEY (user_id) REFERENCES users (id)
     )`);
 
+    // AI Analysis Records
+    db.run(`CREATE TABLE IF NOT EXISTS analysis_records (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        image_path TEXT,
+        health_status TEXT,
+        confidence REAL,
+        description TEXT,
+        action_taken TEXT,
+        recommendation TEXT,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
     // Seed Roles
     const roles = ['Farm Manager', 'Student'];
     roles.forEach(role => {

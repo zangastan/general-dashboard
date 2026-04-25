@@ -89,7 +89,7 @@ const UI = (() => {
         ${navLink('dashboard', 'Dashboard', icon.dashboard)}
         ${navLink('monitoring', 'Environmental', icon.monitoring)}
         ${navLink('control', 'Controls', icon.controls)}
-        ${navLink('camera', 'Imaging', icon.imaging)}
+        ${navLink('camera', 'Advanced AI Analysis', icon.imaging)}
         ${navLink('automation', 'Automation', icon.automation)}
         ${navLink('alerts', 'Alerts', icon.alerts)}
         ${navLink('reports', 'Analytics', icon.analytics)}

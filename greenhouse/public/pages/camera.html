@@ -3,8 +3,20 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>Imaging - Greenhouse CMS</title>
+  <title>Advanced AI Analysis - Greenhouse CMS</title>
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    .analysis-thumb { width: 60px; height: 60px; border-radius: 8px; object-fit: cover; background: var(--neutral-100); }
+    .detail-grid { display: grid; grid-template-columns: 1fr 340px; gap: 0; min-height: 500px; }
+    .detail-img-wrap { background: #000; display: flex; align-items: center; justify-content: center; }
+    .detail-img-wrap img { max-width: 100%; max-height: 500px; object-fit: contain; }
+    .detail-info { padding: 24px; border-left: 1px solid var(--neutral-200); overflow-y: auto; max-height: 80vh; }
+    .info-section { margin-bottom: 24px; }
+    .info-label { font-size: 0.7rem; font-weight: 700; color: var(--neutral-500); text-transform: uppercase; letter-spacing: 0.5px; margin-bottom: 6px; display: block; }
+    .info-value { font-size: 0.95rem; line-height: 1.5; color: var(--neutral-800); }
+    .action-box { background: var(--red-bg); border-left: 4px solid var(--red-crit); padding: 12px; border-radius: 4px; margin-top: 8px; }
+    .rec-box { background: var(--blue-bg); border-left: 4px solid var(--blue-accent); padding: 12px; border-radius: 4px; margin-top: 8px; }
+  </style>
 </head>
 <body>
 <div class="app">
@@ -15,79 +27,197 @@
 
       <div class="page-header">
         <div>
-          <h2>Plant Imaging & AI Analysis</h2>
-          <p>ESP32-CAM metadata and health diagnostics</p>
+          <h2>Advanced AI Plant Analysis</h2>
+          <p>Autonomous health diagnostics and system response tracking</p>
         </div>
         <div class="page-header-actions">
-          <button class="btn btn-green" onclick="triggerCapture()"><span class="header-icon" id="icon-cam-ca" style="color:white;width:16px;height:16px;margin:0"></span> Capture Now</button>
+          <button class="btn btn-outline" onclick="exportBulk('csv')">EXPORT CSV</button>
+          <button class="btn btn-outline" onclick="exportBulk('pdf')">EXPORT PDF</button>
+          <button class="btn btn-green" onclick="triggerAnalysis()">NEW ANALYSIS</button>
         </div>
       </div>
 
-      <!-- Summary Cards -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;margin-bottom:20px;" id="summary-cards">
-        <div class="card"><div class="sc-label">Total Captures</div><div class="sc-value" id="total-caps">-</div></div>
-        <div class="card"><div class="sc-label">Healthy Plants</div><div class="sc-value text-green" id="healthy-count">-</div></div>
-        <div class="card"><div class="sc-label">Requires Attention</div><div class="sc-value text-orange" id="issue-count">-</div></div>
-      </div>
-
-      <!-- Image Grid -->
-      <div style="display:grid;grid-template-columns:repeat(3,1fr);gap:16px;" id="image-grid">
-        <div style="grid-column:span 3;text-align:center;padding:40px;color:var(--neutral-500)">Loading captures...</div>
+      <div class="table-wrap">
+        <div class="table-head">
+          <h3><span class="header-icon" id="icon-list"></span> Analysis Records</h3>
+          <span class="text-muted text-sm" id="row-count">Loading...</span>
+        </div>
+        <table>
+          <thead>
+            <tr>
+              <th>Image</th>
+              <th>Health Status</th>
+              <th>Confidence</th>
+              <th>Date of Capture</th>
+              <th>Summary</th>
+              <th>Action</th>
+            </tr>
+          </thead>
+          <tbody id="analysis-tbody">
+            <tr class="loading-row"><td colspan="6">Loading records...</td></tr>
+          </tbody>
+        </table>
+        <div class="table-footer">
+          <div class="pagination-info" id="pag-info">Showing 0-0 of 0</div>
+          <div class="pagination-btns">
+            <button class="btn btn-outline btn-sm" id="prev-btn" onclick="changePage(-1)" disabled>Previous</button>
+            <button class="btn btn-outline btn-sm" id="next-btn" onclick="changePage(1)" disabled>Next</button>
+          </div>
+        </div>
       </div>
 
     </div>
   </div>
 </div>
 
+<!-- Detailed View Modal -->
+<div id="detail-modal" class="hidden" style="position:fixed;inset:0;background:rgba(0,0,0,.85);z-index:1000;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div class="card" style="width:100%;max-width:1000px;padding:0;overflow:hidden;border:none;">
+    <div class="detail-grid">
+      <div class="detail-img-wrap">
+        <img id="d-img" src="">
+      </div>
+      <div class="detail-info">
+        <div class="d-flex justify-between align-start mb-20">
+          <div>
+            <h2 style="font-size:1.4rem;">Analysis Detail</h2>
+            <p id="d-date" class="text-muted text-sm"></p>
+          </div>
+          <button onclick="closeDetail()" style="background:none;border:none;font-size:1.8rem;cursor:pointer;line-height:1">&times;</button>
+        </div>
+
+        <div class="info-section">
+          <label class="info-label">Plant Health Status</label>
+          <div id="d-status-wrap"></div>
+        </div>
+
+        <div class="info-section">
+          <label class="info-label">Confidence Score</label>
+          <div class="d-flex align-center gap-12">
+            <div class="stat-bar" style="flex:1;height:8px;"><div id="d-conf-bar" class="stat-bar-fill green" style="width:0%"></div></div>
+            <span id="d-conf-val" class="fw-700">0%</span>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <label class="info-label">Condition Description</label>
+          <p id="d-desc" class="info-value"></p>
+        </div>
+
+        <div class="info-section">
+          <label class="info-label">System Actions Taken</label>
+          <div class="action-box">
+            <p id="d-action" style="font-size:0.85rem;font-weight:600;color:var(--red-crit);"></p>
+          </div>
+        </div>
+
+        <div class="info-section">
+          <label class="info-label">Recommendations</label>
+          <div class="rec-box">
+            <p id="d-rec" style="font-size:0.85rem;font-weight:600;color:var(--blue-accent);"></p>
+          </div>
+        </div>
+
+        <div style="margin-top:30px;padding-top:20px;border-top:1px solid var(--neutral-100);">
+          <label class="info-label">Export Single Record</label>
+          <div class="d-flex gap-8">
+            <button class="btn btn-outline btn-sm" style="flex:1" id="btn-export-pdf">PDF REPORT</button>
+            <button class="btn btn-outline btn-sm" style="flex:1" id="btn-export-csv">CSV DATA</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+</div>
+
 <script src="../js/ui.js"></script>
 <script>
-async function loadCamera() {
+let analysisData = [];
+let currentPage = 1;
+const pageSize = 10;
+
+async function loadAnalysis() {
   try {
-    const data = await UI.apiFetch('/api/camera-metadata');
-    const grid = document.getElementById('image-grid');
-    const total = data.length;
-    const healthy = data.filter(d=>d.analysis_result==='Healthy').length;
-    document.getElementById('total-caps').textContent = total;
-    document.getElementById('healthy-count').textContent = healthy;
-    document.getElementById('issue-count').textContent = total - healthy;
-
-    if (!total) {
-      grid.innerHTML = '<div style="grid-column:span 3;text-align:center;padding:40px;color:var(--neutral-500)">No captures yet. Click "Capture Now" to simulate.</div>';
-      return;
-    }
-
-    grid.innerHTML = data.map(item => {
-      const badgeClass = item.analysis_result === 'Healthy' ? 'badge-green' : item.analysis_result === 'Disease Detected' ? 'badge-red' : 'badge-orange';
-      return `<div class="card">
-        <div class="camera-feed" style="margin-bottom:12px">
-          <div class="camera-placeholder" style="height:160px;font-size:.78rem;color:var(--neutral-400)">
-            [ Simulated: ${item.filename} ]
-          </div>
-          <div class="camera-overlay">
-            <span class="camera-live-dot" style="font-size:.7rem">${item.filename}</span>
-          </div>
-        </div>
-        <div class="d-flex justify-between align-center">
-          <span class="badge ${badgeClass}">${item.analysis_result}</span>
-          <span class="text-xs text-muted">${new Date(item.timestamp).toLocaleString()}</span>
-        </div>
-      </div>`;
-    }).join('');
-  } catch(e) { UI.toast(e.message,'error'); }
+    analysisData = await UI.apiFetch('/api/analysis');
+    document.getElementById('row-count').textContent = analysisData.length + ' records';
+    renderTable();
+  } catch(e) { UI.toast(e.message, 'error'); }
 }
 
-async function triggerCapture() {
-  try {
-    await UI.apiFetch('/api/camera/capture', {method:'POST'});
-    UI.toast('Capture triggered - refreshing...');
-    setTimeout(loadCamera, 1500);
-  } catch(e) { UI.toast(e.message,'error'); }
+function renderTable() {
+  const tb = document.getElementById('analysis-tbody');
+  if (!analysisData.length) {
+    tb.innerHTML = '<tr class="loading-row"><td colspan="6">No analysis records found.</td></tr>';
+    return;
+  }
+
+  const start = (currentPage - 1) * pageSize;
+  const end = start + pageSize;
+  const pageData = analysisData.slice(start, end);
+
+  tb.innerHTML = pageData.map(r => {
+    const bc = r.health_status === 'Healthy' ? 'badge-green' : r.health_status === 'Heat Stress' ? 'badge-orange' : 'badge-red';
+    return `
+      <tr onclick="openDetail(${r.id})" style="cursor:pointer">
+        <td><img src="${r.image_path}" class="analysis-thumb"></td>
+        <td><span class="badge ${bc}">${r.health_status}</span></td>
+        <td class="fw-700">${r.confidence}%</td>
+        <td class="text-muted">${new Date(r.created_at).toLocaleString()}</td>
+        <td class="text-sm" style="max-width:250px">${r.description.slice(0, 60)}...</td>
+        <td><button class="btn btn-outline btn-sm" onclick="event.stopPropagation();openDetail(${r.id})">DETAILS</button></td>
+      </tr>`;
+  }).join('');
+
+  const total = analysisData.length;
+  document.getElementById('pag-info').textContent = `Showing ${total ? start + 1 : 0}-${Math.min(end, total)} of ${total}`;
+  document.getElementById('prev-btn').disabled = currentPage === 1;
+  document.getElementById('next-btn').disabled = end >= total;
 }
 
-document.addEventListener('DOMContentLoaded', () => { 
-  document.getElementById('icon-cam-ca').innerHTML = UI.icon.camera;
-  loadCamera(); 
-  setInterval(loadCamera, 2000); 
+function changePage(dir) {
+  currentPage += dir;
+  renderTable();
+}
+
+async function triggerAnalysis() {
+  try {
+    UI.toast('Triggering AI Diagnostic...', 'info');
+    await UI.apiFetch('/api/analysis', { method: 'POST' });
+    UI.toast('Analysis complete!', 'success');
+    loadAnalysis();
+  } catch(e) { UI.toast(e.message, 'error'); }
+}
+
+async function openDetail(id) {
+  try {
+    const r = await UI.apiFetch('/api/analysis/' + id);
+    document.getElementById('d-img').src = r.image_path;
+    document.getElementById('d-date').textContent = new Date(r.created_at).toLocaleString();
+    document.getElementById('d-desc').textContent = r.description;
+    document.getElementById('d-action').textContent = r.action_taken;
+    document.getElementById('d-rec').textContent = r.recommendation;
+    document.getElementById('d-conf-val').textContent = r.confidence + '%';
+    document.getElementById('d-conf-bar').style.width = r.confidence + '%';
+    
+    const bc = r.health_status === 'Healthy' ? 'badge-green' : r.health_status === 'Heat Stress' ? 'badge-orange' : 'badge-red';
+    document.getElementById('d-status-wrap').innerHTML = `<span class="badge ${bc}">${r.health_status}</span>`;
+    
+    document.getElementById('btn-export-pdf').onclick = () => window.open(`/api/analysis/${id}/export?format=pdf`, '_blank');
+    document.getElementById('btn-export-csv').onclick = () => window.open(`/api/analysis/${id}/export?format=csv`, '_blank');
+    
+    document.getElementById('detail-modal').classList.remove('hidden');
+  } catch(e) { UI.toast(e.message, 'error'); }
+}
+
+function closeDetail() { document.getElementById('detail-modal').classList.add('hidden'); }
+
+function exportBulk(format) {
+  window.open(`/api/analysis-export?format=${format}`, '_blank');
+}
+
+document.addEventListener('DOMContentLoaded', () => {
+  document.getElementById('icon-list').innerHTML = UI.icon.clipboard;
+  loadAnalysis();
 });
 </script>
 </body>
