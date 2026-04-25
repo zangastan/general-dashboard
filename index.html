@@ -1,0 +1,112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Greenhouse CMS | Smart Control Center</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&display=swap" rel="stylesheet">
+    <script src="https://unpkg.com/lucide@latest"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+    <div class="app-container">
+        <!-- Sidebar -->
+        <aside class="sidebar">
+            <div class="sidebar-header">
+                <div class="logo">
+                    <i data-lucide="sprout"></i>
+                    <div class="logo-text">
+                        <h1>Greenhouse CMS</h1>
+                        <span>Command Center v2.4</span>
+                    </div>
+                </div>
+            </div>
+            <nav class="sidebar-nav">
+                <ul>
+                    <li class="active" data-view="dashboard">
+                        <i data-lucide="layout-dashboard"></i> <span>Dashboard</span>
+                    </li>
+                    <li data-view="environmental">
+                        <i data-lucide="thermometer"></i> <span>Environmental</span>
+                    </li>
+                    <li data-view="controls">
+                        <i data-lucide="settings-2"></i> <span>Controls</span>
+                    </li>
+                    <li data-view="imaging">
+                        <i data-lucide="camera"></i> <span>Imaging</span>
+                    </li>
+                    <li data-view="automation">
+                        <i data-lucide="git-branch"></i> <span>Automation</span>
+                    </li>
+                    <li data-view="alerts">
+                        <i data-lucide="bell"></i> <span>Alerts</span>
+                    </li>
+                    <li data-view="analytics">
+                        <i data-lucide="bar-chart-3"></i> <span>Analytics</span>
+                    </li>
+                </ul>
+            </nav>
+            <div class="sidebar-footer">
+                <button class="add-sensor-btn">
+                    <i data-lucide="plus"></i> <span>Add Sensor</span>
+                </button>
+                <div class="user-profile" data-view="settings">
+                    <i data-lucide="settings"></i> <span>Settings</span>
+                </div>
+                <div class="operator-info">
+                    <img src="https://ui-avatars.com/api/?name=Alex+Reed&background=1B5E20&color=fff" alt="Avatar" class="avatar">
+                    <div class="operator-text">
+                        <span class="name">Alex Reed</span>
+                        <span class="role">Chief Operator</span>
+                    </div>
+                </div>
+            </div>
+        </aside>
+
+        <!-- Main Content -->
+        <main class="main-content">
+            <header class="top-header">
+                <div class="system-status">
+                    <div class="status-item online">
+                        <i data-lucide="wifi"></i> <span>ESP32: Online</span>
+                    </div>
+                    <div class="status-item active">
+                        <i data-lucide="video"></i> <span>Camera: Active</span>
+                    </div>
+                    <div class="status-item sync">
+                        <i data-lucide="refresh-cw"></i> <span>Last Sync: Just now</span>
+                    </div>
+                </div>
+                <div class="header-actions">
+                    <div class="search-bar">
+                        <i data-lucide="search"></i>
+                        <input type="text" placeholder="Search parameters...">
+                    </div>
+                    <button class="icon-btn"><i data-lucide="bell"></i><span class="badge"></span></button>
+                    <button class="icon-btn"><i data-lucide="help-circle"></i></button>
+                </div>
+            </header>
+
+            <div id="view-container" class="view-container">
+                <!-- Content will be injected here by app.js -->
+                <div class="loading-state">
+                    <div class="spinner"></div>
+                    <p>Loading Dashboard...</p>
+                </div>
+            </div>
+        </main>
+    </div>
+
+    <!-- Modals & Overlays -->
+    <div id="modal-container" class="modal-container hidden">
+        <div class="modal-content">
+            <!-- Modal content injected here -->
+        </div>
+    </div>
+
+    <script src="app.js"></script>
+</body>
+</html>

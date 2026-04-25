@@ -1,0 +1,347 @@
+<!DOCTYPE html>
+
+<html lang="en"><head>
+<meta charset="utf-8"/>
+<meta content="width=device-width, initial-scale=1.0" name="viewport"/>
+<script src="https://cdn.tailwindcss.com?plugins=forms,container-queries"></script>
+<link href="https://fonts.googleapis.com/css2?family=Manrope:wght@400;600;700;800&amp;family=Inter:wght@400;600;700&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<link href="https://fonts.googleapis.com/css2?family=Material+Symbols+Outlined:wght,FILL@100..700,0..1&amp;display=swap" rel="stylesheet"/>
+<script id="tailwind-config">
+        tailwind.config = {
+            darkMode: "class",
+            theme: {
+                extend: {
+                    "colors": {
+                        "surface-container": "#eeeeee",
+                        "tertiary-container": "#246dc8",
+                        "on-secondary-fixed-variant": "#5d4037",
+                        "primary-fixed-dim": "#88d982",
+                        "on-surface-variant": "#40493d",
+                        "surface-bright": "#f9f9f9",
+                        "on-tertiary-fixed-variant": "#00468c",
+                        "on-error-container": "#93000a",
+                        "on-tertiary": "#ffffff",
+                        "error": "#ba1a1a",
+                        "on-secondary-fixed": "#2c160e",
+                        "outline": "#707a6c",
+                        "tertiary": "#0054a7",
+                        "tertiary-fixed-dim": "#a9c7ff",
+                        "primary": "#0d631b",
+                        "secondary": "#77574d",
+                        "background": "#f9f9f9",
+                        "on-primary-fixed-variant": "#005312",
+                        "surface": "#f9f9f9",
+                        "surface-dim": "#dadada",
+                        "surface-container-low": "#f3f3f3",
+                        "primary-container": "#2e7d32",
+                        "on-primary-container": "#cbffc2",
+                        "tertiary-fixed": "#d6e3ff",
+                        "on-primary-fixed": "#002204",
+                        "secondary-fixed-dim": "#e7bdb1",
+                        "on-background": "#1a1c1c",
+                        "on-primary": "#ffffff",
+                        "surface-variant": "#e2e2e2",
+                        "inverse-primary": "#88d982",
+                        "surface-container-high": "#e8e8e8",
+                        "surface-container-lowest": "#ffffff",
+                        "primary-fixed": "#a3f69c",
+                        "inverse-on-surface": "#f1f1f1",
+                        "secondary-container": "#fed3c7",
+                        "inverse-surface": "#2f3131",
+                        "outline-variant": "#bfcaba",
+                        "on-surface": "#1a1c1c",
+                        "on-error": "#ffffff",
+                        "on-secondary-container": "#795950",
+                        "surface-container-highest": "#e2e2e2",
+                        "surface-tint": "#1b6d24",
+                        "on-tertiary-fixed": "#001b3d",
+                        "on-tertiary-container": "#edf1ff",
+                        "error-container": "#ffdad6",
+                        "on-secondary": "#ffffff",
+                        "secondary-fixed": "#ffdbd0"
+                    },
+                    "borderRadius": {
+                        "DEFAULT": "0.125rem",
+                        "lg": "0.25rem",
+                        "xl": "0.5rem",
+                        "full": "0.75rem"
+                    },
+                    "spacing": {
+                        "base": "4px",
+                        "gutter": "16px",
+                        "sm": "8px",
+                        "margin": "24px",
+                        "md": "16px",
+                        "xs": "4px",
+                        "lg": "24px",
+                        "xl": "32px"
+                    },
+                    "fontFamily": {
+                        "headline-md": ["Manrope"],
+                        "label-md": ["Inter"],
+                        "body-lg": ["Inter"],
+                        "data-display": ["Inter"],
+                        "headline-lg": ["Manrope"],
+                        "body-sm": ["Inter"],
+                        "headline-sm": ["Manrope"],
+                        "body-md": ["Inter"]
+                    },
+                    "fontSize": {
+                        "headline-md": ["24px", {"lineHeight": "32px", "fontWeight": "600"}],
+                        "label-md": ["12px", {"lineHeight": "16px", "letterSpacing": "0.05em", "fontWeight": "600"}],
+                        "body-lg": ["16px", {"lineHeight": "24px", "fontWeight": "400"}],
+                        "data-display": ["28px", {"lineHeight": "32px", "fontWeight": "700"}],
+                        "headline-lg": ["32px", {"lineHeight": "40px", "fontWeight": "700"}],
+                        "body-sm": ["12px", {"lineHeight": "16px", "fontWeight": "400"}],
+                        "headline-sm": ["20px", {"lineHeight": "28px", "fontWeight": "600"}],
+                        "body-md": ["14px", {"lineHeight": "20px", "fontWeight": "400"}]
+                    }
+                }
+            }
+        }
+    </script>
+<style>
+        .material-symbols-outlined {
+            font-variation-settings: 'FILL' 0, 'wght' 400, 'GRAD' 0, 'opsz' 24;
+        }
+        .hide-scrollbar::-webkit-scrollbar { display: none; }
+        .hide-scrollbar { -ms-overflow-style: none; scrollbar-width: none; }
+    </style>
+</head>
+<body class="bg-background font-body-md text-on-background antialiased">
+<!-- SideNavBar -->
+<aside class="fixed left-0 top-0 h-full w-64 z-40 bg-white dark:bg-gray-950 px-3 py-6 border-r border-gray-200 dark:border-gray-800 font-manrope text-sm antialiased">
+<div class="mb-10 px-4">
+<h1 class="text-xl font-bold tracking-tight text-green-800 dark:text-green-400">Greenhouse CMS</h1>
+<p class="text-xs text-gray-500 mt-1">Command Center v2.4</p>
+</div>
+<nav class="flex-1 space-y-1">
+<a class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="dashboard">dashboard</span>
+<span>Dashboard</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="thermostat">thermostat</span>
+<span>Environmental</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="settings_remote">settings_remote</span>
+<span>Controls</span>
+</a>
+<!-- Active Navigation: Imaging -->
+<a class="flex items-center gap-3 px-4 py-3 bg-green-50 dark:bg-green-900/20 text-green-700 dark:text-green-400 font-bold rounded-md transition-all" href="#">
+<span class="material-symbols-outlined" data-icon="videocam">videocam</span>
+<span>Imaging</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="auto_mode">auto_mode</span>
+<span>Automation</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="notifications">notifications</span>
+<span>Alerts</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="bar_chart">bar_chart</span>
+<span>Analytics</span>
+</a>
+<a class="flex items-center gap-3 px-4 py-3 text-gray-600 dark:text-gray-400 hover:bg-gray-50 dark:hover:bg-gray-900 rounded-md transition-colors duration-150" href="#">
+<span class="material-symbols-outlined" data-icon="settings">settings</span>
+<span>Settings</span>
+</a>
+</nav>
+<div class="mt-auto px-4 py-6 border-t border-gray-100">
+<button class="w-full flex items-center justify-center gap-2 bg-primary text-on-primary py-2.5 rounded-lg font-semibold text-sm hover:opacity-90 active:scale-95 transition-all">
+<span class="material-symbols-outlined text-sm" data-icon="add">add</span>
+                Add Sensor
+            </button>
+</div>
+</aside>
+<!-- TopAppBar -->
+<header class="fixed top-0 right-0 left-64 h-16 flex justify-between items-center px-8 z-30 bg-white/80 dark:bg-gray-950/80 backdrop-blur-md border-b border-gray-200 dark:border-gray-800 font-manrope text-sm font-medium">
+<div class="flex items-center gap-4">
+<span class="text-lg font-black text-green-700 dark:text-green-400 uppercase tracking-wider">Greenhouse Command</span>
+<span class="h-4 w-px bg-gray-300"></span>
+<nav class="flex gap-6">
+<a class="text-green-700 dark:text-green-400 border-b-2 border-green-700 py-1" href="#">Live Feed</a>
+<a class="text-gray-500 dark:text-gray-400 hover:text-green-600 transition-colors py-1" href="#">Archived</a>
+<a class="text-gray-500 dark:text-gray-400 hover:text-green-600 transition-colors py-1" href="#">Health Reports</a>
+</nav>
+</div>
+<div class="flex items-center gap-6">
+<div class="relative group">
+<input class="bg-surface-container-low border-none rounded-full px-4 py-1.5 text-xs w-64 focus:ring-2 focus:ring-primary" placeholder="Search sensors..." type="text"/>
+<span class="material-symbols-outlined absolute right-3 top-1.5 text-gray-400 text-sm" data-icon="search">search</span>
+</div>
+<div class="flex items-center gap-3 text-gray-500">
+<span class="material-symbols-outlined hover:text-green-600 cursor-pointer" data-icon="wifi">wifi</span>
+<span class="material-symbols-outlined hover:text-green-600 cursor-pointer" data-icon="videocam">videocam</span>
+<span class="material-symbols-outlined hover:text-green-600 cursor-pointer animate-spin-slow" data-icon="sync">sync</span>
+</div>
+<img alt="Admin User" class="w-8 h-8 rounded-full border border-gray-200" data-alt="professional headshot of a male greenhouse operator with a friendly expression in a clean tech environment" src="https://lh3.googleusercontent.com/aida-public/AB6AXuAgPeMWywZjxlem63NDMJhjgK5xWRM1nVyzSzHPE8V2Ib5m5bdryzR2PWFgoDn3w8MIaVCgJfJgS8IhuDb9qdzWQOUwmy8UNMQYw2U5bUsIAlLoUGKUy4gERdZwnugA9Nu9ePZHz9c0EUhAqNzZPOgGSUTWb-596M-ygxbAXuKtRRlBK1XUWaCPP6XcbCj92sCxfOzItzoHU5fkFYt9uCnwf1AKj4ZhruRHYmsnr_LUYA6C7I3Nz1t9gKXjcy8Y3GDGIdFbCGyQcJ4"/>
+</div>
+</header>
+<!-- Main Content Area -->
+<main class="ml-64 pt-16 p-lg bg-background min-h-screen">
+<div class="max-w-[1440px] mx-auto grid grid-cols-12 gap-lg">
+<!-- Headline Section -->
+<div class="col-span-12 mb-2">
+<div class="flex items-center gap-sm">
+<span class="h-2 w-2 rounded-full bg-primary"></span>
+<h2 class="font-headline-md text-headline-md">Zone 04 - High Density Cultivation</h2>
+</div>
+<p class="text-body-sm text-on-surface-variant font-body-sm">Camera 08 • Live 4K Stream • 34 Plants in view</p>
+</div>
+<!-- 1. Live Camera Feed Window (Bento Primary) -->
+<div class="col-span-12 lg:col-span-8">
+<div class="relative group bg-black rounded-xl overflow-hidden aspect-video shadow-lg border border-outline-variant">
+<img alt="Greenhouse interior" class="w-full h-full object-cover opacity-90" data-alt="wide shot of a high-tech greenhouse with rows of vibrant green lettuce plants under pinkish LED grow lights, 4k resolution" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCxgBA02dVfryrW-GNjDqWM2JIIZ2LqeL94gLGSLpdoC-VTY-Uj8IRTj197EbnoZLyXj0kvsXlFQPeXbinzkhTtNjDIMqIZKe0yOvoZqYgMSttzGCefrYqD3V3mq_a5_p70BgloSjLBPvDjavJqqGVXL5w3o83wpX04RQsv2_9rBu863V6LtnlnCYUNVskB_DOzJDJp8EkAZGRM24IwrJTS3wRQOq9e0uuI4aE2jLmFV4wseicjQkg-ld8EQoLMGjGLEKQu4aOSJXI"/>
+<!-- Camera HUD Overlays -->
+<div class="absolute top-md left-md flex items-center gap-xs px-2 py-1 bg-black/50 text-white rounded text-[10px] font-bold tracking-widest uppercase backdrop-blur-sm">
+<span class="h-1.5 w-1.5 rounded-full bg-red-600 animate-pulse"></span>
+                        REC
+                    </div>
+<div class="absolute top-md right-md flex flex-col items-end gap-xs">
+<div class="px-2 py-1 bg-black/50 text-white rounded text-[10px] backdrop-blur-sm">ISO 200</div>
+<div class="px-2 py-1 bg-black/50 text-white rounded text-[10px] backdrop-blur-sm">F/2.8</div>
+</div>
+<!-- Centered Overlay Button -->
+<div class="absolute inset-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity">
+<button class="bg-white/20 hover:bg-white/40 backdrop-blur-md text-white border border-white/30 px-6 py-3 rounded-full flex items-center gap-2 font-semibold shadow-2xl active:scale-95 transition-all">
+<span class="material-symbols-outlined" data-icon="photo_camera" style="font-variation-settings: 'FILL' 1;">photo_camera</span>
+                            Take Snapshot
+                        </button>
+</div>
+<!-- Bottom Controls -->
+<div class="absolute bottom-0 left-0 right-0 p-md bg-gradient-to-t from-black/80 to-transparent flex items-center justify-between">
+<div class="flex items-center gap-md text-white">
+<span class="material-symbols-outlined cursor-pointer" data-icon="pause">pause</span>
+<span class="material-symbols-outlined cursor-pointer" data-icon="volume_up">volume_up</span>
+<span class="text-xs font-mono">14:24:02 UTC</span>
+</div>
+<div class="flex items-center gap-md text-white">
+<span class="material-symbols-outlined cursor-pointer" data-icon="zoom_in">zoom_in</span>
+<span class="material-symbols-outlined cursor-pointer" data-icon="fullscreen">fullscreen</span>
+</div>
+</div>
+</div>
+</div>
+<!-- 2. Analysis Panel (Bento Secondary) -->
+<div class="col-span-12 lg:col-span-4 flex flex-col gap-lg">
+<div class="bg-white border border-outline-variant rounded-xl p-lg flex-1">
+<div class="flex items-center justify-between mb-lg">
+<h3 class="font-headline-sm text-headline-sm text-secondary">Real-time Analysis</h3>
+<span class="material-symbols-outlined text-primary" data-icon="analytics">analytics</span>
+</div>
+<div class="space-y-lg">
+<div class="p-md bg-surface-container rounded-lg border-l-4 border-primary">
+<p class="text-label-md font-label-md uppercase mb-1">Overall Health Score</p>
+<div class="flex items-end gap-2">
+<span class="text-data-display font-data-display text-primary leading-none">92%</span>
+<span class="text-xs text-green-600 font-bold flex items-center">
+<span class="material-symbols-outlined text-sm" data-icon="arrow_upward">arrow_upward</span>
+                                    2%
+                                </span>
+</div>
+</div>
+<div class="grid grid-cols-2 gap-md">
+<div class="bg-surface-container-low p-md rounded-lg">
+<p class="text-label-md font-label-md text-on-surface-variant uppercase">Pest Scan</p>
+<p class="text-body-lg font-bold mt-1 text-green-800 flex items-center gap-1">
+<span class="material-symbols-outlined text-sm" data-icon="check_circle" style="font-variation-settings: 'FILL' 1;">check_circle</span>
+                                    Clear
+                                </p>
+</div>
+<div class="bg-surface-container-low p-md rounded-lg">
+<p class="text-label-md font-label-md text-on-surface-variant uppercase">Leaf Status</p>
+<p class="text-body-lg font-bold mt-1 text-green-800">Healthy</p>
+</div>
+</div>
+<div class="space-y-sm">
+<p class="text-label-md font-label-md text-on-surface-variant uppercase">Confidence Metrics</p>
+<div class="w-full bg-gray-200 rounded-full h-1.5">
+<div class="bg-primary h-1.5 rounded-full" style="width: 98%"></div>
+</div>
+<div class="flex justify-between text-[10px] font-bold text-gray-400">
+<span>IDENTIFICATION</span>
+<span>98% CONFIDENCE</span>
+</div>
+</div>
+<div class="pt-md border-t border-gray-100 flex flex-col gap-sm">
+<button class="w-full bg-surface-container-highest hover:bg-surface-container-high py-2 rounded-lg text-sm font-semibold transition-colors">Generate Full Report</button>
+<button class="w-full text-secondary font-semibold text-sm hover:underline">Manual Override Calibration</button>
+</div>
+</div>
+</div>
+</div>
+<!-- 3. Image Gallery (Horizontal Scroll) -->
+<div class="col-span-12">
+<div class="flex items-center justify-between mb-md">
+<h3 class="font-headline-sm text-headline-sm">Recent Snapshots</h3>
+<div class="flex gap-2">
+<button class="p-1 bg-white border rounded-full hover:bg-gray-50"><span class="material-symbols-outlined" data-icon="chevron_left">chevron_left</span></button>
+<button class="p-1 bg-white border rounded-full hover:bg-gray-50"><span class="material-symbols-outlined" data-icon="chevron_right">chevron_right</span></button>
+</div>
+</div>
+<div class="flex gap-gutter overflow-x-auto pb-4 hide-scrollbar snap-x">
+<!-- Snapshot Card 1 -->
+<div class="flex-none w-64 bg-white border border-outline-variant rounded-xl overflow-hidden snap-start hover:shadow-lg transition-all cursor-pointer">
+<div class="relative h-40">
+<img alt="Plant detail" class="w-full h-full object-cover" data-alt="extreme close up of a healthy tomato plant leaf with visible veins and dew drops under professional grow lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuCp-2_U51Ll60LSsc4shaPEEFwKVh6HxCLb34t85QkPAxR1BZtj_dBjyIjQV1I_6RUZ8-nnxI8lPziDErAK6aaijl7_g5JWGs1oO3DOkqd_d2vkzVNg0zOLAmqSZj7mO-TAp5mWWqsyJZ8huHdrXO4eAurIi8YKTbKTLd-ujT6eEugOQIFYitu_2VU1neTObzrOInkq8UWtqgXPm2iepr1v_9ZwyU_bj5l4qhpBB40_LR2D72O9vknuuN0s2AOmYw7kOP6G_1XWgjQ"/>
+<span class="absolute top-sm right-sm px-2 py-0.5 bg-primary/90 text-on-primary text-[10px] font-bold rounded">HEALTHY</span>
+</div>
+<div class="p-md">
+<p class="text-xs font-bold text-on-surface">12:15 PM Today</p>
+<p class="text-[11px] text-on-surface-variant mt-1">Ref: SNAP-0042 • Zone 04</p>
+</div>
+</div>
+<!-- Snapshot Card 2 -->
+<div class="flex-none w-64 bg-white border border-outline-variant rounded-xl overflow-hidden snap-start hover:shadow-lg transition-all cursor-pointer">
+<div class="relative h-40">
+<img alt="Plant detail" class="w-full h-full object-cover grayscale-[0.3]" data-alt="close up of plant leaves showing slight yellowing at the edges, indicating mild water stress, bright greenhouse lighting" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDAS3n0kVARNujVwUGERXxBWVKiIYlkXZCoisbrkaQikc4FDs8sfVZDpNvGeTATSXyu9kTdpzPNUbYnZ420jbG9jd5DAsitC-sjpOsKGFLrsKGayPiUisBin2fR92901K0ppOA-jfsLuoGViFiIcU-CKjuxu3aJTCuzcvPbU-7IaBg_FUfMqHSWWiFJnUXirT7vdCK6TVGmRJnvuGo_UVhyczGjNxInMGR7YaLXSNATlrTxQozwOfTg5w7QejvYI-z4GptvDoEdcuU"/>
+<span class="absolute top-sm right-sm px-2 py-0.5 bg-yellow-500 text-white text-[10px] font-bold rounded uppercase">Water Stress</span>
+</div>
+<div class="p-md">
+<p class="text-xs font-bold text-on-surface">09:40 AM Today</p>
+<p class="text-[11px] text-on-surface-variant mt-1">Ref: SNAP-0041 • Zone 04</p>
+</div>
+</div>
+<!-- Snapshot Card 3 -->
+<div class="flex-none w-64 bg-white border border-outline-variant rounded-xl overflow-hidden snap-start hover:shadow-lg transition-all cursor-pointer">
+<div class="relative h-40">
+<img alt="Plant detail" class="w-full h-full object-cover" data-alt="lush green leaves of a hydroponic spinach farm viewed from above, crisp and vibrant colors" src="https://lh3.googleusercontent.com/aida-public/AB6AXuC6j31NHQpN6qxKR5WXRfysOkC5llB5uPfNlXqAuadJlg4G-g3ZB08mCYh9obbSIFLyDhglvH-bqk6shj6V_AhE8EM-h-Q4ANwgDuYfaug3apHcLGOaQMJvHTO0DwBxTxGh4LteUMYLR9NLvh6E7Ubq3NNXJ3K92XBOaJnjQ7Hua1KAEyQHYiinm8Yp8nuZB_bsFsRnd_g12pZzNwJs1YiYiK3P2TqZCzrW03EBD6WzgGGKWxLk753upo-WrAJMkuB-J0Gh2dQeb6k"/>
+<span class="absolute top-sm right-sm px-2 py-0.5 bg-primary/90 text-on-primary text-[10px] font-bold rounded">HEALTHY</span>
+</div>
+<div class="p-md">
+<p class="text-xs font-bold text-on-surface">06:00 AM Today</p>
+<p class="text-[11px] text-on-surface-variant mt-1">Ref: SNAP-0040 • Zone 04</p>
+</div>
+</div>
+<!-- Snapshot Card 4 -->
+<div class="flex-none w-64 bg-white border border-outline-variant rounded-xl overflow-hidden snap-start hover:shadow-lg transition-all cursor-pointer">
+<div class="relative h-40">
+<img alt="Plant detail" class="w-full h-full object-cover" data-alt="macro photo of a sprout growing from fertile soil, soft morning light in a glass greenhouse" src="https://lh3.googleusercontent.com/aida-public/AB6AXuABbHpSusgkuBmzg6WnwacXUGxIXI2647HiKm1g9bEWoDmO7RW-EOCO2GyHkhs18tWr_BwmLSF9pJ_QvAuHi6UyDjyiz5wR-mlenDvyRF4r6gKWWRQzeUdiw0PPAsOfh3x-LdDRLsFBdKI1Rfgznn-ICiA-3Ot0E3dsJHEEq41U8xVQC9O9kNQWm7xDA6gPnxj6F383Nlmr6N4oitJCZ0-9_E-f-1fq7Ojild96iUg6sljYK-UgyumhdSGjt1QlgCGVjJVIddN_LwE"/>
+<span class="absolute top-sm right-sm px-2 py-0.5 bg-primary/90 text-on-primary text-[10px] font-bold rounded">HEALTHY</span>
+</div>
+<div class="p-md">
+<p class="text-xs font-bold text-on-surface">Yesterday 11:30 PM</p>
+<p class="text-[11px] text-on-surface-variant mt-1">Ref: SNAP-0039 • Zone 04</p>
+</div>
+</div>
+<!-- Snapshot Card 5 -->
+<div class="flex-none w-64 bg-white border border-outline-variant rounded-xl overflow-hidden snap-start hover:shadow-lg transition-all cursor-pointer">
+<div class="relative h-40">
+<img alt="Plant detail" class="w-full h-full object-cover" data-alt="close up of vibrant green plant leaves with scientific labels overlaying specific parts of the leaf" src="https://lh3.googleusercontent.com/aida-public/AB6AXuDIVhxENcXrhWC1DPnfhPcGD49Hjh-izivrrFODnwJ-7UP2CAyaybr7NuKabzYDwx8oKcHmIi2rhuQRsBYba2jO2FlLdSH5nHc8X8r1RuJeEZ_NUei2Bx0iF31QHhVcOQHiVrBky6ABDEgp4IgStYCrL6L_ovX4b0jvgsqzlezOELlexThy0rWlKaHEv1HBMlsgl6MPSALZUS38OR9ENQhAereRCyaztcUhP6iDD_jI4rPLnGSYgeG5hrU42Wv9o8HULyTG7_zYBIY"/>
+<span class="absolute top-sm right-sm px-2 py-0.5 bg-primary/90 text-on-primary text-[10px] font-bold rounded">HEALTHY</span>
+</div>
+<div class="p-md">
+<p class="text-xs font-bold text-on-surface">Yesterday 04:15 PM</p>
+<p class="text-[11px] text-on-surface-variant mt-1">Ref: SNAP-0038 • Zone 04</p>
+</div>
+</div>
+</div>
+</div>
+</div>
+</main>
+</body></html>
