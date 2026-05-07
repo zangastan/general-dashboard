@@ -171,6 +171,128 @@ const UI = (() => {
     return data;
   }
 
+  /* ── LIVE STREAM (WebSocket-first, polling fallback) ──────── */
+  const _handlers   = {};   // event → [callback, ...]
+  let   _ws         = null;
+  let   _wsRetries  = 0;
+  let   _pollTimer  = null;
+  let   _wsActive   = false;
+  const WS_MAX_RETRY = 3;
+  const POLL_INTERVAL = 3000; // ms, used only in fallback mode
+
+  // Device status tracking
+  let _deviceOnline  = false;
+  let _lastTelemetry = 0;
+  const DEVICE_TIMEOUT_MS = 35000; // 35 s without telemetry = offline
+
+  /** Register a handler for a specific event name */
+  function onLiveEvent(event, callback) {
+    if (!_handlers[event]) _handlers[event] = [];
+    _handlers[event].push(callback);
+  }
+
+  function _dispatch(event, data) {
+    (_handlers[event] || []).forEach(cb => { try { cb(data); } catch(e) { console.error('[WS] Handler error:', e); } });
+    (_handlers['*']   || []).forEach(cb => { try { cb(event, data); } catch(e) {} });
+    // Track device liveness on telemetry events
+    if (event === 'telemetry') {
+      _lastTelemetry = Date.now();
+      if (!_deviceOnline) { _deviceOnline = true; _updateDeviceBadge(true); }
+    }
+  }
+
+  function _updateDeviceBadge(online) {
+    const badge = document.getElementById('device-status-badge');
+    if (!badge) return;
+    badge.textContent = online ? '● ESP32 ONLINE' : '● ESP32 OFFLINE';
+    badge.className   = 'device-badge ' + (online ? 'online' : 'offline');
+  }
+
+  /** Polling fallback — calls /api/sensors + /api/alerts every POLL_INTERVAL ms */
+  function _startPolling() {
+    if (_pollTimer) return;
+    console.info('[STREAM] WebSocket unavailable — switching to HTTP polling fallback');
+    const badge = document.getElementById('ws-mode-badge');
+    if (badge) { badge.textContent = '⟳ POLLING'; badge.className = 'ws-badge poll'; }
+
+    _pollTimer = setInterval(async () => {
+      try {
+        const sensors = await apiFetch('/api/sensors');
+        // Reshape into telemetry-style object
+        const tel = { _polled: true };
+        sensors.forEach(s => {
+          if (s.type === 'Temperature')   tel.temperature    = +s.value;
+          if (s.type === 'Humidity')      tel.humidity       = +s.value;
+          if (s.type === 'Soil Moisture') tel.soil_moisture  = +s.value;
+        });
+        _dispatch('telemetry', tel);
+
+        const alerts = await apiFetch('/api/alerts');
+        _dispatch('alerts', alerts);
+      } catch(e) { console.warn('[POLL] Fetch failed:', e.message); }
+    }, POLL_INTERVAL);
+  }
+
+  function _stopPolling() {
+    if (_pollTimer) { clearInterval(_pollTimer); _pollTimer = null; }
+  }
+
+  /** Connect WebSocket — auto-retries up to WS_MAX_RETRY, then falls back to polling */
+  function _connectWS() {
+    const proto = location.protocol === 'https:' ? 'wss' : 'ws';
+    const wsUrl = `${proto}://${location.host}/ws`;
+
+    _ws = new WebSocket(wsUrl);
+
+    _ws.onopen = () => {
+      _wsRetries = 0;
+      _wsActive  = true;
+      _stopPolling();
+      const badge = document.getElementById('ws-mode-badge');
+      if (badge) { badge.textContent = '⚡ LIVE WS'; badge.className = 'ws-badge live'; }
+      console.info('[STREAM] WebSocket connected');
+    };
+
+    _ws.onmessage = evt => {
+      try {
+        const { event, data } = JSON.parse(evt.data);
+        _dispatch(event, data);
+      } catch(e) { /* ignore malformed frames */ }
+    };
+
+    _ws.onclose = () => {
+      _wsActive = false;
+      console.warn(`[STREAM] WebSocket closed (attempt ${_wsRetries + 1}/${WS_MAX_RETRY})`);
+      if (_wsRetries < WS_MAX_RETRY) {
+        _wsRetries++;
+        // Exponential back-off: 2s, 4s, 8s
+        setTimeout(_connectWS, Math.pow(2, _wsRetries) * 1000);
+      } else {
+        console.warn('[STREAM] Max WS retries — activating polling fallback');
+        _startPolling();
+      }
+    };
+
+    _ws.onerror = () => {
+      // onclose will fire right after — handled there
+    };
+  }
+
+  /** Start live stream. Call once on page load. */
+  function liveStream() {
+    _connectWS();
+
+    // Heartbeat: check device liveness every 10 s
+    setInterval(() => {
+      if (!_lastTelemetry) return;
+      const stale = Date.now() - _lastTelemetry > DEVICE_TIMEOUT_MS;
+      if (stale && _deviceOnline) {
+        _deviceOnline = false;
+        _updateDeviceBadge(false);
+      }
+    }, 10000);
+  }
+
   /* ── INIT ─────────────────────────────────────────────────── */
   function init() {
     checkAuth();
@@ -178,7 +300,8 @@ const UI = (() => {
     renderTopbar();
   }
 
-  return { init, getUser, getToken, isAdmin, apiFetch, toast, icon };
+  return { init, getUser, getToken, isAdmin, apiFetch, toast, icon, liveStream, onLiveEvent };
 })();
 
 document.addEventListener('DOMContentLoaded', UI.init.bind(UI));
+

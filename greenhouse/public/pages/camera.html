@@ -243,9 +243,9 @@ async function triggerAnalysis() {
     const imageData = ctxAnalysis.getImageData(0, 0, w, h);
     const pixels = Array.from(imageData.data);
 
-    const body = { image: base64Image, pixels: pixels, width: w, height: h };
+    const requestBody = JSON.stringify({ image: base64Image, pixels: pixels, width: w, height: h });
 
-    await UI.apiFetch('/api/analysis', { method: 'POST', body });
+    await UI.apiFetch('/api/analysis', { method: 'POST', body: requestBody });
     
     UI.toast('Analysis complete!', 'success');
     loadAnalysis();

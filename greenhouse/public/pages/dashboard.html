@@ -4,7 +4,37 @@
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
   <title>Dashboard - Greenhouse CMS</title>
+  <meta name="description" content="Live ESP32 sensor dashboard for Smart Greenhouse monitoring and control.">
   <link rel="stylesheet" href="../css/style.css">
+  <style>
+    /* ── Device Status Banner ── */
+    .device-banner {
+      display: flex; align-items: center; gap: 12px;
+      padding: 10px 18px; border-radius: 10px; margin-bottom: 18px;
+      background: rgba(0,0,0,.04); border: 1px solid rgba(0,0,0,.08);
+      font-size: .82rem; font-weight: 600;
+    }
+    .device-badge {
+      padding: 4px 12px; border-radius: 20px; font-size: .75rem;
+      font-weight: 700; letter-spacing: .04em; transition: all .3s;
+    }
+    .device-badge.online  { background:#e8f5e9; color:#2e7d32; border:1px solid #a5d6a7; }
+    .device-badge.offline { background:#ffebee; color:#c62828; border:1px solid #ef9a9a; animation: pulse-red 1.5s infinite; }
+    .device-badge.waiting { background:#fff8e1; color:#e65100; border:1px solid #ffe082; }
+    .ws-badge {
+      padding: 3px 10px; border-radius: 20px; font-size: .7rem; font-weight: 700; margin-left: auto;
+    }
+    .ws-badge.live { background:#e3f2fd; color:#0054a7; border:1px solid #90caf9; }
+    .ws-badge.poll { background:#fff8e1; color:#f57c00; border:1px solid #ffe082; }
+    @keyframes pulse-red {
+      0%,100% { opacity:1; } 50% { opacity:.5; }
+    }
+    .health-val { font-size:1rem; font-weight:700; }
+    .health-val.good { color:#2e7d32; }
+    .health-val.warn { color:#f57c00; }
+    .health-val.bad  { color:#c62828; }
+    .last-seen { font-size:.75rem; color:var(--neutral-500); font-weight:400; }
+  </style>
 </head>
 <body>
 <div class="app">
@@ -16,19 +46,43 @@
       <!-- Page Header -->
       <div class="page-header">
         <div>
-          <h2>Zone 01 Dashboard</h2>
-          <p>Hydroponic Lettuce Array • Batch #8842</p>
+          <h2>Welcome</h2>
+          <p id="device-subtitle">Awaiting ESP32 connection...</p>
         </div>
         <div class="page-header-actions">
           <span class="live-badge">LIVE DATA</span>
         </div>
       </div>
 
+      <!-- Device Status Banner -->
+      <div class="device-banner">
+        <span id="device-status-badge" class="device-badge waiting">● AWAITING DEVICE</span>
+        <span id="device-rssi" style="color:var(--neutral-500)">RSSI: —</span>
+        <span id="device-error" style="color:#c62828;display:none"></span>
+        <span id="ws-mode-badge" class="ws-badge live">⚡ LIVE WS</span>
+        <span id="last-seen-label" class="last-seen"></span>
+      </div>
+
       <!-- Sensor Cards -->
       <div class="sensor-grid" id="sensor-grid">
-        <div class="sensor-card"><div class="sc-top"><div class="sc-icon green" id="icon-temp"></div><span class="sc-status" id="s-temp-st">-</span></div><div class="sc-label">Temperature</div><div class="sc-value" id="s-temp-val">-</div><div class="sc-bar"><div class="sc-bar-fill" id="s-temp-bar" style="width:0%"></div></div></div>
-        <div class="sensor-card"><div class="sc-top"><div class="sc-icon green" id="icon-hum"></div><span class="sc-status" id="s-hum-st">-</span></div><div class="sc-label">Humidity</div><div class="sc-value" id="s-hum-val">-</div><div class="sc-bar"><div class="sc-bar-fill" id="s-hum-bar" style="width:0%"></div></div></div>
-        <div class="sensor-card"><div class="sc-top"><div class="sc-icon orange" id="icon-moist"></div><span class="sc-status" id="s-moist-st">-</span></div><div class="sc-label">Soil Moisture</div><div class="sc-value" id="s-moist-val">-</div><div class="sc-bar"><div class="sc-bar-fill" id="s-moist-bar" style="width:0%"></div></div></div>
+        <div class="sensor-card">
+          <div class="sc-top"><div class="sc-icon green" id="icon-temp"></div><span class="sc-status" id="s-temp-st">Loading...</span></div>
+          <div class="sc-label">Temperature</div>
+          <div class="sc-value" id="s-temp-val">...</div>
+          <div class="sc-bar"><div class="sc-bar-fill" id="s-temp-bar" style="width:0%"></div></div>
+        </div>
+        <div class="sensor-card">
+          <div class="sc-top"><div class="sc-icon green" id="icon-hum"></div><span class="sc-status" id="s-hum-st">Loading...</span></div>
+          <div class="sc-label">Humidity</div>
+          <div class="sc-value" id="s-hum-val">...</div>
+          <div class="sc-bar"><div class="sc-bar-fill" id="s-hum-bar" style="width:0%"></div></div>
+        </div>
+        <div class="sensor-card">
+          <div class="sc-top"><div class="sc-icon orange" id="icon-moist"></div><span class="sc-status" id="s-moist-st">Loading...</span></div>
+          <div class="sc-label">Soil Value</div>
+          <div class="sc-value" id="s-moist-val">...</div>
+          <div class="sc-bar"><div class="sc-bar-fill" id="s-moist-bar" style="width:0%"></div></div>
+        </div>
       </div>
 
       <!-- Actuator Controls -->
@@ -36,7 +90,7 @@
         <div class="actuator-card">
           <div class="ac-header">
             <div class="ac-title"><span class="header-icon" id="icon-pump-d"></span> Water Pump</div>
-            <span class="ac-status-off" id="pump-status">STANDBY</span>
+            <span class="ac-status-off" id="pump-status">...</span>
           </div>
           <div class="ac-actions">
             <span>Toggle Status</span>
@@ -56,33 +110,46 @@
         <div class="actuator-card">
           <div class="ac-header">
             <div class="ac-title"><span class="header-icon" id="icon-fan-d"></span> Air Circulation</div>
-            <span class="ac-status-on" id="fan-status">ON</span>
+            <span class="ac-status-off" id="fan-status">...</span>
           </div>
           <div class="ac-actions">
             <span>Toggle Status</span>
-            <button class="btn btn-green btn-sm" onclick="toggleDevice('fan','OFF')" id="fan-btn">DEACTIVATE</button>
+            <button class="btn btn-green btn-sm" onclick="toggleDevice('fan','ON')" id="fan-btn">ACTIVATE</button>
           </div>
         </div>
       </div>
 
-      <!-- Alerts + System Health -->
-      <div class="two-col">
+      <!-- Alerts + System Health (Legacy - Hidden as no API source in new spec) -->
+      <div class="two-col" style="display:none">
         <div class="table-wrap">
           <div class="table-head">
             <h3><span class="header-icon" id="icon-warn-d"></span> Critical Alerts</h3>
             <a href="alerts" class="card-link">VIEW ALL</a>
           </div>
-          <div id="alert-list"><div style="padding:30px;text-align:center;color:var(--neutral-500);font-size:.85rem">Loading...</div></div>
+          <div id="alert-list"><div style="padding:30px;text-align:center;color:var(--neutral-500);font-size:.85rem">Waiting for live data…</div></div>
         </div>
 
         <div class="card">
           <div class="card-header"><h3>System Health</h3></div>
-          <div class="health-row"><span>WiFi Strength</span><strong id="h-wifi">- dBm</strong></div>
-          <div class="health-row"><span>Uptime</span><strong id="h-uptime">-</strong></div>
-          <div class="health-row"><span>CPU Load</span><strong id="h-cpu">-</strong></div>
-          <div class="all-systems">
+          <div class="health-row">
+            <span>WiFi Signal</span>
+            <strong class="health-val" id="h-wifi">— dBm</strong>
+          </div>
+          <div class="health-row">
+            <span>Device Uptime</span>
+            <strong class="health-val" id="h-uptime">—</strong>
+          </div>
+          <div class="health-row">
+            <span>Pump Status</span>
+            <strong class="health-val" id="h-pump">—</strong>
+          </div>
+          <div class="health-row">
+            <span>Error State</span>
+            <strong class="health-val" id="h-error">None</strong>
+          </div>
+          <div class="all-systems" id="all-systems-row">
             <div class="all-systems-icon" id="icon-check-d"></div>
-            <div><p>ALL SYSTEMS GO</p><span>No hardware faults detected.</span></div>
+            <div><p id="system-status-text">AWAITING DEVICE</p><span id="system-status-sub">No telemetry received yet.</span></div>
           </div>
         </div>
       </div>
@@ -93,120 +160,148 @@
 
 <script src="../js/ui.js"></script>
 <script>
-const statusMap = {
-  Temperature: v => v > 30 ? ['warning','HIGH'] : ['optimal','OPTIMAL'],
-  Humidity:    v => v < 40 ? ['warning','LOW'] : v > 75 ? ['warning','HIGH'] : ['stable','STABLE'],
-  'Soil Moisture': v => v < 20 ? ['critical','CRITICAL'] : v < 30 ? ['warning','WARNING'] : ['optimal','OPTIMAL'],
+/* ── STATE ────────────────────────────────────────────────────── */
+let currentDeviceState = { fan: false, pump: false };
+let pollInterval = null;
+
+/* ── DOM ELEMENTS ─────────────────────────────────────────────── */
+const els = {
+  temp:    document.getElementById('s-temp-val'),
+  hum:     document.getElementById('s-hum-val'),
+  soil:    document.getElementById('s-moist-val'),
+  status:  document.getElementById('s-moist-st'),
+  fan:     document.getElementById('fan-status'),
+  pump:    document.getElementById('pump-status'),
+  subtitle: document.getElementById('device-subtitle'),
+  badge:   document.getElementById('device-status-badge'),
+  error:   document.getElementById('device-error'),
+  fanBtn:  document.getElementById('fan-btn'),
+  pumpBtn: document.getElementById('pump-btn')
 };
 
-function applyBar(barEl, val, max=100) {
-  barEl.style.width = Math.min(100, (val/max)*100)+'%';
+/* ── UI UPDATES ───────────────────────────────────────────────── */
+function updateUI(data) {
+  if (!data) return;
+  if (data.status === 'AWAITING_DEVICE') {
+    els.badge.textContent = '● AWAITING DATA';
+    els.badge.className = 'device-badge waiting';
+    els.subtitle.textContent = 'Server is online. Awaiting first telemetry from ESP32...';
+    return;
+  }
+  
+  // Update state
+  currentDeviceState.fan = !!data.fan;
+  currentDeviceState.pump = !!data.pump;
+
+  // 1. Temperature
+  els.temp.textContent = `${data.temp.toFixed(1)} °C`;
+  const tempBar = document.getElementById('s-temp-bar');
+  if (tempBar) tempBar.style.width = Math.min(100, Math.max(0, (data.temp / 50) * 100)) + '%';
+  
+  // 2. Humidity
+  els.hum.textContent = `${data.hum.toFixed(1)} %`;
+  const humBar = document.getElementById('s-hum-bar');
+  if (humBar) humBar.style.width = data.hum + '%';
+  
+  // 3. Soil Value
+  els.soil.textContent = data.soil;
+  const soilBar = document.getElementById('s-moist-bar');
+  if (soilBar) {
+    const pct = (data.soil / 4095) * 100;
+    soilBar.style.width = pct + '%';
+    soilBar.className = 'sc-bar-fill' + (data.status === 'DRY' ? ' crit' : ' optimal');
+  }
+  
+  // 4. Status (DRY -> RED, WET -> GREEN)
+  els.status.textContent = data.status;
+  els.status.className = 'sc-status ' + (data.status === 'DRY' ? 'critical' : 'optimal');
+  els.status.style.backgroundColor = data.status === 'DRY' ? '#c62828' : '#2e7d32';
+  els.status.style.color = 'white';
+  els.status.style.padding = '2px 8px';
+  els.status.style.borderRadius = '4px';
+  
+  // 5. Fan
+  els.fan.textContent = data.fan ? 'ON' : 'OFF';
+  els.fan.className = data.fan ? 'ac-status-on' : 'ac-status-off';
+  els.fanBtn.textContent = data.fan ? 'DEACTIVATE' : 'ACTIVATE';
+  els.fanBtn.className = data.fan ? 'btn btn-outline btn-sm' : 'btn btn-green btn-sm';
+  
+  // 6. Pump
+  els.pump.textContent = data.pump ? 'ON' : 'OFF';
+  els.pump.className = data.pump ? 'ac-status-on' : 'ac-status-off';
+  els.pumpBtn.textContent = data.pump ? 'DEACTIVATE' : 'ACTIVATE';
+  els.pumpBtn.className = data.pump ? 'btn btn-outline btn-sm' : 'btn btn-green btn-sm';
+
+  // Subtitle / Last Updated
+  const time = data.timestamp ? new Date(data.timestamp).toLocaleTimeString() : 'Just now';
+  els.subtitle.textContent = `Real-time sensor data · Last updated: ${time}`;
+  
+  // Status Badge
+  els.badge.textContent = '● LIVE';
+  els.badge.className = 'device-badge online';
+  if (els.error) els.error.style.display = 'none';
 }
 
-async function loadSensors() {
+function showDisconnected() {
+  els.badge.textContent = '● DISCONNECTED';
+  els.badge.className = 'device-badge offline';
+  els.subtitle.textContent = 'Connection lost. Retrying...';
+}
+
+/* ── POLLING LOGIC ────────────────────────────────────────────── */
+async function fetchLatestData() {
   try {
-    const data = await UI.apiFetch('/api/sensors');
-    data.forEach(s => {
-      if (s.type === 'Temperature') {
-        const [cls, lbl] = statusMap.Temperature(+s.value);
-        document.getElementById('s-temp-val').textContent = s.value + s.unit;
-        const st = document.getElementById('s-temp-st');
-        st.textContent = lbl; st.className = 'sc-status ' + cls;
-        applyBar(document.getElementById('s-temp-bar'), +s.value, 50);
-      }
-      if (s.type === 'Humidity') {
-        const [cls, lbl] = statusMap.Humidity(+s.value);
-        document.getElementById('s-hum-val').textContent = s.value + s.unit;
-        const st = document.getElementById('s-hum-st');
-        st.textContent = lbl; st.className = 'sc-status ' + cls;
-        applyBar(document.getElementById('s-hum-bar'), +s.value);
-      }
-      if (s.type === 'Soil Moisture') {
-        const [cls, lbl] = statusMap['Soil Moisture'](+s.value);
-        document.getElementById('s-moist-val').textContent = s.value + s.unit;
-        const st = document.getElementById('s-moist-st');
-        st.textContent = lbl; st.className = 'sc-status ' + cls;
-        const bar = document.getElementById('s-moist-bar');
-        applyBar(bar, +s.value);
-        bar.className = 'sc-bar-fill' + (cls === 'critical' ? ' crit' : cls === 'warning' ? ' warn' : '');
-      }
-    });
-  } catch(e) { console.error('Sensor fetch failed', e); }
-}
-
-async function loadAlerts() {
-  try {
-    const data = await UI.apiFetch('/api/alerts');
-    const el = document.getElementById('alert-list');
-    if (!data.length) { el.innerHTML = '<div style="padding:30px;text-align:center;color:var(--neutral-500);font-size:.85rem">No active alerts.</div>'; return; }
-    el.innerHTML = data.slice(0,5).map(a => {
-      const dot = a.severity === 'High' ? 'crit' : a.severity === 'Medium' ? 'warn' : 'ok';
-      const age = timeSince(a.timestamp);
-      return `<div class="alert-item">
-        <div class="alert-dot ${dot}"></div>
-        <div class="alert-info"><p>${a.message}</p><span>${a.type}</span></div>
-        <span class="alert-time">${age}</span>
-      </div>`;
-    }).join('');
-  } catch(e) { console.error('Alert fetch failed', e); }
-}
-
-async function loadHealth() {
-  // Simulated metrics from server uptime
-  document.getElementById('h-wifi').textContent = '-42 dBm';
-  document.getElementById('h-uptime').textContent = formatUptime();
-  document.getElementById('h-cpu').textContent = (10 + Math.floor(Math.random()*15)) + '%';
-}
-
-function formatUptime() {
-  const start = localStorage.getItem('session_start') || Date.now();
-  if (!localStorage.getItem('session_start')) localStorage.setItem('session_start', Date.now());
-  const diff = Date.now() - +start;
-  const h = Math.floor(diff/3600000), m = Math.floor((diff%3600000)/60000);
-  return `${h}h ${m}m`;
-}
-
-function timeSince(ts) {
-  const diff = Math.floor((Date.now() - new Date(ts).getTime()) / 60000);
-  if (diff < 1) return 'just now';
-  if (diff < 60) return diff + 'm ago';
-  return Math.floor(diff/60) + 'h ago';
-}
-
-async function toggleDevice(device, action) {
-  try {
-    await UI.apiFetch('/api/control', { method:'POST', body: JSON.stringify({ device, action }) });
-    UI.toast(`${device} set to ${action}`, 'success');
-    refreshActuators(device, action);
-  } catch(e) { UI.toast(e.message, 'error'); }
-}
-
-function refreshActuators(device, action) {
-  const statusEl = document.getElementById(`${device}-status`);
-  const btnEl = document.getElementById(`${device}-btn`);
-  if (!statusEl) return;
-  if (action === 'ON' || action === 'OPEN') {
-    statusEl.className = 'ac-status-on'; statusEl.textContent = action;
-    btnEl.textContent = 'DEACTIVATE'; btnEl.onclick = () => toggleDevice(device, device === 'vents' ? 'CLOSED' : 'OFF');
-  } else {
-    statusEl.className = 'ac-status-off'; statusEl.textContent = action;
-    btnEl.textContent = 'ACTIVATE'; btnEl.onclick = () => toggleDevice(device, device === 'vents' ? 'OPEN' : 'ON');
+    const data = await UI.apiFetch('/api/sensor-data/latest');
+    updateUI(data);
+  } catch (err) {
+    showDisconnected();
   }
 }
 
-function boot() {
-  document.getElementById('icon-temp').innerHTML = UI.icon.temp;
-  document.getElementById('icon-hum').innerHTML = UI.icon.hum;
-  document.getElementById('icon-moist').innerHTML = UI.icon.moist;
-  document.getElementById('icon-pump-d').innerHTML = UI.icon.hum;
-  document.getElementById('icon-window-d').innerHTML = UI.icon.window;
-  document.getElementById('icon-fan-d').innerHTML = UI.icon.fan;
-  document.getElementById('icon-warn-d').innerHTML = UI.icon.warn;
-  document.getElementById('icon-check-d').innerHTML = UI.icon.check;
-  loadSensors(); loadAlerts(); loadHealth();
-  setInterval(loadSensors, 2000);
-  setInterval(loadAlerts, 2000);
+/* ── CONTROL LOGIC ────────────────────────────────────────────── */
+async function toggleDevice(device) {
+  const targetState = !currentDeviceState[device];
+  const payload = { [device]: targetState };
+  
+  try {
+    const res = await UI.apiFetch('/api/control', {
+      method: 'POST',
+      body: JSON.stringify(payload)
+    });
+    
+    if (res.success) {
+      UI.toast(`${device.toUpperCase()} command sent: ${targetState ? 'ON' : 'OFF'}`, 'info');
+      // Optimistic UI update
+      if (device === 'fan') {
+        els.fan.textContent = targetState ? 'ON' : 'OFF';
+        els.fanBtn.textContent = targetState ? 'DEACTIVATE' : 'ACTIVATE';
+      } else {
+        els.pump.textContent = targetState ? 'ON' : 'OFF';
+        els.pumpBtn.textContent = targetState ? 'DEACTIVATE' : 'ACTIVATE';
+      }
+    }
+  } catch (err) {
+    UI.toast(`Failed to send control command: ${err.message}`, 'error');
+  }
 }
+
+/* ── BOOT ─────────────────────────────────────────────────────── */
+function boot() {
+  // Inject icons
+  document.getElementById('icon-temp').innerHTML    = UI.icon.temp;
+  document.getElementById('icon-hum').innerHTML     = UI.icon.hum;
+  document.getElementById('icon-moist').innerHTML   = UI.icon.moist;
+  document.getElementById('icon-pump-d').innerHTML  = UI.icon.hum;
+  document.getElementById('icon-window-d').innerHTML= UI.icon.window;
+  document.getElementById('icon-fan-d').innerHTML   = UI.icon.fan;
+  document.getElementById('icon-warn-d').innerHTML  = UI.icon.warn;
+  document.getElementById('icon-check-d').innerHTML = UI.icon.check;
+
+  // Start Polling (every 1s for "real-time" feel)
+  fetchLatestData();
+  pollInterval = setInterval(fetchLatestData, 1000);
+}
+
 document.addEventListener('DOMContentLoaded', boot);
 </script>
 </body>

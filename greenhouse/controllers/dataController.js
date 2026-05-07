@@ -46,13 +46,22 @@ async function getCameraMetadata(req, res) {
 
 async function triggerCapture(req, res) {
   try {
-    authMiddleware(req);
-    const results = ['Healthy', 'Water Stress', 'Disease Detected'];
-    const result = results[Math.floor(Math.random() * results.length)];
+    const user = authMiddleware(req);
+    // Record a camera trigger event — actual image analysis happens via the AI Analysis page
+    // (browser webcam → /api/analysis). This endpoint queues a capture request.
     const filename = `cam_${Date.now()}.jpg`;
-    await db.run('INSERT INTO camera_metadata (filename, analysis_result) VALUES (?, ?)', [filename, result]);
-    await audit.log(null, 'CAMERA_CAPTURE', `Manual capture: ${filename} → ${result}`, req);
-    send(res, 201, { filename, analysis_result: result });
+    const result   = 'Pending Analysis';
+    await db.run(
+      'INSERT INTO camera_metadata (filename, analysis_result) VALUES (?, ?)',
+      [filename, result]
+    );
+    // Queue a camera_capture command so ESP32 knows a snapshot was requested
+    await db.run(
+      'INSERT INTO device_commands (device, action, source) VALUES (?, ?, ?)',
+      ['camera', 'CAPTURE', 'dashboard']
+    );
+    await audit.log(user ? user.id : null, 'CAMERA_CAPTURE', `Trigger queued: ${filename}`, req);
+    send(res, 201, { filename, analysis_result: result, queued: true });
   } catch (e) { send(res, e.status || 500, { error: e.message }); }
 }
 

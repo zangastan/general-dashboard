@@ -1,11 +1,20 @@
 const sqlite3 = require('sqlite3').verbose();
-const bcrypt = require('bcrypt');
-const path = require('path');
-const fs = require('fs');
+const bcrypt  = require('bcrypt');
+const path    = require('path');
+const fs      = require('fs');
 
+// Load env vars from .env if present
+const envPath = path.join(__dirname, '..', '.env');
+if (fs.existsSync(envPath)) {
+  fs.readFileSync(envPath, 'utf8').split('\n').forEach(line => {
+    const [k, ...rest] = line.trim().split('=');
+    if (k && !k.startsWith('#') && rest.length) process.env[k] = rest.join('=');
+  });
+}
+
+const DEVICE_API_KEY = process.env.DEVICE_API_KEY || 'ESP32_GH_PROD_KEY_CHANGE_ME';
 const dbPath = path.join(__dirname, 'greenhouse.db');
 
-// Ensure db directory exists
 if (!fs.existsSync(__dirname)) {
     fs.mkdirSync(__dirname);
 }
@@ -120,6 +129,33 @@ db.serialize(async () => {
         analysis_text TEXT,
         created_at DATETIME DEFAULT CURRENT_TIMESTAMP
     )`);
+
+    // Device Commands Queue (dashboard → ESP32 relay commands)
+    db.run(`CREATE TABLE IF NOT EXISTS device_commands (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device TEXT NOT NULL,
+        action TEXT NOT NULL,
+        source TEXT DEFAULT 'dashboard',
+        acknowledged INTEGER DEFAULT 0,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Device API Keys
+    db.run(`CREATE TABLE IF NOT EXISTS device_api_keys (
+        id INTEGER PRIMARY KEY AUTOINCREMENT,
+        device_id TEXT UNIQUE NOT NULL,
+        api_key TEXT NOT NULL,
+        created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+    )`);
+
+    // Add signal_quality column to sensors if not already present (migration guard)
+    db.run(`ALTER TABLE sensors ADD COLUMN signal_quality INTEGER`, () => {});
+
+    // Seed default device API key
+    db.run(
+        `INSERT OR IGNORE INTO device_api_keys (device_id, api_key) VALUES (?, ?)`,
+        ['ESP32_GREENHOUSE_01', DEVICE_API_KEY]
+    );
 
     // Seed Roles
     const roles = ['Farm Manager', 'Student'];
